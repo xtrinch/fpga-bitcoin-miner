@@ -1,0 +1,6 @@
+.scons*
+*.json
+*.bin
+*.asc
+*.out
+*.vcd
