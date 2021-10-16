@@ -23,20 +23,20 @@ module uart_comm (
     output wire status_led4,
 );
 	// States
-	localparam STATE_IDLE = 4'b0001;
-	localparam STATE_READ = 4'b0010;
-	localparam STATE_PARSE = 4'b0100;
-	localparam STATE_SEND = 4'b1000;
+	localparam STATE_IDLE = 3'b001;
+	localparam STATE_READ = 3'b010;
+	localparam STATE_PARSE = 3'b100;
 
 	reg [63:0] system_info = 256'hDEADBEEF13370D13;
 
 	wire reset = 0;
-	reg transmit;
+	reg transmit; // signal to start transmitting byte
+    reg transmit_packet; // signal to start transmitting packet
 	reg [7:0] tx_byte;
-	wire received;
+	wire received; // signal that a byte has been received
 	wire [7:0] rx_byte;
-	wire is_receiving;
-	wire is_transmitting;
+	wire is_receiving; // whether uart is receiving or not
+	wire is_transmitting; // whether uart is transmitting or not
 	wire recv_error;
 
 	// RX Message Buffer
@@ -76,32 +76,21 @@ module uart_comm (
 		.recv_error(recv_error)           // Indicates error in receiving packet.
 	);
 
-
-	// always @(posedge sys_clk) begin
-	// 	if (received && rx_byte == 0) begin
-	// 		tx_byte <= rx_byte;
-	// 		transmit <= 1;
-	// 	end else begin
-	// 		transmit <= 0;
-	// 	end
-	// end
-
 	always @(posedge sys_clk) begin
-        transmit <= 1'b0;  
-
         case (state)
         	// Waiting for new packet
 			STATE_IDLE:
             if (received) begin
                 if (rx_byte == 0) begin
-                    tx_byte <= rx_byte;
-                    transmit <= 1;
+                    length <= 8'd1;
+                    msg_length <= 8'h1;
+                    transmit_packet <= 1;
                 end
                 else if (rx_byte < 8) begin	// Invalid Length, 8 bytes is the smallest, send message invalid
                     length <= 8'd1;
                     msg_length <= 8'h8;
                     msg_type <= MSG_INVALID;
-                    state <= STATE_SEND;
+                    transmit_packet <= 1;
                 end
                 else begin // received a valid length, continue to read
                     length <= 8'd2; // starts at two because the first one is the packet length
@@ -125,15 +114,15 @@ module uart_comm (
 
 			// Parse packet
 			STATE_PARSE: 
-            begin
+            if (!transmit_packet) begin // if we're still transmitting a packet, wait
 				// By default, we'll send some kind of
 				// response. Special cases are handled below.
 				length <= 8'd1;
 				msg_length <= 8'd8;
-				state <= STATE_SEND;
+				state <= STATE_IDLE;
+                transmit_packet <= 1;
 
-				if (msg_type == MSG_INFO && msg_length == 8)
-				begin
+				if (msg_type == MSG_INFO && msg_length == 8) begin
 					msg_type <= MSG_INFO;
 					msg_data <= system_info;
 					msg_length <= 8'd16;
@@ -141,109 +130,29 @@ module uart_comm (
 				else
 					msg_type <= MSG_INVALID;
 			end
-
-			// Send packet
-			STATE_SEND: 
-            if (!is_transmitting) begin
-				transmit <= 1'b1;
-				length <= length + 8'd1;
-
-				if (length == 8'd1)
-					tx_byte <= msg_length;
-				else if (length == 8'd2 || length == 8'd3)
-					tx_byte <= 8'h00;
-				else if (length == 8'd4)
-					tx_byte <= msg_type;
-				else if (length <= msg_length)
-				begin
-					tx_byte <= msg_data[7:0];
-					msg_data <= {8'd0, msg_data[MSG_BUF_LEN*8-1:8]}; // right shift the data for a byte
-				end
-
-				if (length == msg_length)
-					state <= STATE_IDLE;
-			end
         endcase
-	end
 
-	// always @ (posedge sys_clk)
-	// begin
-    //     transmit <= 1'b0;  
+        // transmits the actual packet, decoupled from the state
+        // machine as to not block the receives
+        transmit <= 1'b0;  
+        if (transmit_packet && !is_transmitting) begin
+            transmit <= 1'b1;
+            length <= length + 8'd1;
 
-	// 	case (state)
-	// 		//// Waiting for new packet
-	// 		STATE_IDLE: if (received) begin
-	// 			if (rx_byte == 0)	// PING
-	// 			begin
-    // 				tx_byte <= 8'd1;	// PONG
-	// 				transmit <= 1'b1;
-	// 			end
-	// 			else if (rx_byte < 8)	// Invalid Length, send message invalid
-	// 			begin
-	// 				length <= 8'd1;
-	// 				msg_length <= 8'h8;
-	// 				msg_type <= MSG_INVALID;
-	// 				state <= STATE_SEND;
-	// 			end
-	// 			else // received a valid length, continue to read
-	// 			begin
-	// 				length <= 8'd2; // starts at two because the first one is the packet length
-	// 				msg_length <= rx_byte;
-	// 				state <= STATE_READ;
-	// 			end
-	// 		end
+            if (length == 8'd1)
+                tx_byte <= msg_length;
+            else if (length == 8'd2 || length == 8'd3)
+                tx_byte <= 8'h00;
+            else if (length == 8'd4)
+                tx_byte <= msg_type;
+            else if (length <= msg_length)
+            begin
+                tx_byte <= msg_data[7:0];
+                msg_data <= {8'd0, msg_data[MSG_BUF_LEN*8-1:8]}; // right shift the data for a byte
+            end
 
-	// 		//// Reading packet
-	// 		STATE_READ: if (received) begin
-	// 			msg_data <= {rx_byte, msg_data[MSG_BUF_LEN*8-1:8]}; // shift right by 8 bits
-	// 			length <= length + 8'd1;
-
-	// 			if (length == 8'd4)
-	// 				msg_type <= rx_byte;
-
-	// 			if (length == msg_length)
-	// 				state <= STATE_PARSE;
-	// 		end
-
-	// 		//// Parse packet
-	// 		STATE_PARSE: begin
-	// 			// By default, we'll send some kind of
-	// 			// response. Special cases are handled below.
-	// 			length <= 8'd1;
-	// 			msg_length <= 8'd8;
-	// 			state <= STATE_SEND;
-
-	// 			if (msg_type == MSG_INFO && msg_length == 8)
-	// 			begin
-	// 				msg_type <= MSG_INFO;
-	// 				msg_data <= system_info;
-	// 				msg_length <= 8'd16;
-	// 			end
-	// 			else
-	// 				msg_type <= MSG_INVALID;
-	// 		end
-
-	// 		//// Send packet
-	// 		STATE_SEND: if (!is_transmitting) begin
-	// 			transmit <= 1'b1;
-	// 			length <= length + 8'd1;
-
-	// 			if (length == 8'd1)
-	// 				tx_byte <= msg_length;
-	// 			else if (length == 8'd2 || length == 8'd3)
-	// 				tx_byte <= 8'h00;
-	// 			else if (length == 8'd4)
-	// 				tx_byte <= msg_type;
-	// 			else if (length <= msg_length)
-	// 			begin
-	// 				tx_byte <= msg_data[7:0];
-	// 				msg_data <= {8'd0, msg_data[MSG_BUF_LEN*8-1:8]}; // right shift the data for a byte
-	// 			end
-
-	// 			if (length == msg_length)
-	// 				state <= STATE_IDLE;
-	// 		end
-	// 	endcase
-	// end
-
+            if (length == msg_length)
+                transmit_packet <= 0;
+        end
+    end
 endmodule
