@@ -27,11 +27,11 @@ set_io --warn-no-port D4 96
 set_io --warn-no-port D5 95
 
 # ------------ IrDA ----------------------------------------------------------
-set_io --warn-no-port IrDA_TX 105
-set_io --warn-no-port IrDA_RX 106
+#set_io --warn-no-port IrDA_TX 105
+#set_io --warn-no-port IrDA_RX 106
 
 #-- SD = 0, enable IrDA
-set_io --warn-no-port SD 107
+#set_io --warn-no-port SD 107
 
 # ------------ PMOD connector ------------------------------------------------
 #
@@ -58,14 +58,14 @@ set_io --warn-no-port SD 107
 #    | 87    78 | <
 #     ----------
 #
-set_io --warn-no-port PMOD1 78
-set_io --warn-no-port PMOD2 79
-set_io --warn-no-port PMOD3 80
-set_io --warn-no-port PMOD4 81
-set_io --warn-no-port PMOD7 87
-set_io --warn-no-port PMOD8 88
-set_io --warn-no-port PMOD9 90
-set_io --warn-no-port PMOD10 91
+#set_io --warn-no-port PMOD1 78
+#set_io --warn-no-port PMOD2 79
+#set_io --warn-no-port PMOD3 80
+#set_io --warn-no-port PMOD4 81
+#set_io --warn-no-port PMOD7 87
+#set_io --warn-no-port PMOD8 88
+#set_io --warn-no-port PMOD9 90
+#set_io --warn-no-port PMOD10 91
 
 # ------------------------ EXPANSION I/O ------------------------------------
 #
@@ -101,42 +101,42 @@ set_io --warn-no-port PMOD10 91
 #         -------------------------------------------------
 #
 # -- Top Row
-set_io --warn-no-port TR3 112
-set_io --warn-no-port TR4 113
-set_io --warn-no-port TR5 114
-set_io --warn-no-port TR6 115
-set_io --warn-no-port TR7 116
-set_io --warn-no-port TR8 117
-set_io --warn-no-port TR9 118
-set_io --warn-no-port TR10 119
+#set_io --warn-no-port TR3 112
+#set_io --warn-no-port TR4 113
+#set_io --warn-no-port TR5 114
+#set_io --warn-no-port TR6 115
+#set_io --warn-no-port TR7 116
+#set_io --warn-no-port TR8 117
+#set_io --warn-no-port TR9 118
+#set_io --warn-no-port TR10 119
 #
 # -- Bottom Row
-set_io --warn-no-port BR3 62
-set_io --warn-no-port BR4 61
-set_io --warn-no-port BR5 60
-set_io --warn-no-port BR6 56
-set_io --warn-no-port BR7 48
-set_io --warn-no-port BR8 47
-set_io --warn-no-port BR9 45
-set_io --warn-no-port BR10 44
+#set_io --warn-no-port BR3 62
+#set_io --warn-no-port BR4 61
+#set_io --warn-no-port BR5 60
+#set_io --warn-no-port BR6 56
+#set_io --warn-no-port BR7 48
+#set_io --warn-no-port BR8 47
+#set_io --warn-no-port BR9 45
+#set_io --warn-no-port BR10 44
 
 # -------------------------- SYSTEM CLOCK ------------------------------------
 set_io --warn-no-port CLK 21
 
 # -------------------------- FTDI --------------------------------------------
 # --- FTDI 0:
-set_io --warn-no-port RES  66
-set_io --warn-no-port DONE 65
-set_io --warn-no-port SS   71
-set_io --warn-no-port MISO 67
-set_io --warn-no-port MOSI 68
-set_io --warn-no-port SCK  70
+#set_io --warn-no-port RES  66
+#set_io --warn-no-port DONE 65
+#set_io --warn-no-port SS   71
+#set_io --warn-no-port MISO 67
+#set_io --warn-no-port MOSI 68
+#set_io --warn-no-port SCK  70
 #
 # --- FTDI 1: (Serial port)
-set_io --warn-no-port DCD 1
-set_io --warn-no-port DSR 2
-set_io --warn-no-port DTR 3
-set_io --warn-no-port CTS 4
-set_io --warn-no-port RTS 7
+#set_io --warn-no-port DCD 1
+#set_io --warn-no-port DSR 2
+#set_io --warn-no-port DTR 3
+#set_io --warn-no-port CTS 4
+#set_io --warn-no-port RTS 7
 set_io --warn-no-port TX  8
 set_io --warn-no-port RX  9

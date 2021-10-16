@@ -1,0 +1,57 @@
+// UART TX Module
+//
+// 8 data bits, 0 parity, 1 stop.
+//
+// * Excepts a clock which is 16x the serial data rate.
+//
+// NOTES:
+// To send a byte, make sure tx_busy is LOW and then drive tx_init HIGH and
+// tx_data to desired byte for one cycle. tx_busy will stay HIGH until byte
+// has been sent.
+
+module uart_tx (
+	input clk,
+	input tx_init, // initiate transmission
+	input [7:0] tx_data, // data to send
+	output reg tx_busy = 1'b0,
+	output reg tx_serial // serial bitstream
+);
+
+	reg [9:0] data = 10'b1_11111111_1;
+	reg [3:0] counter = 4'd0; // What fraction of bit time are we at (0-15)
+	reg [3:0] sent = 4'd0; // how many bits of the byte to send have we already sent out
+
+	always @ (posedge clk)
+	begin
+		counter <= counter + 4'd1;
+
+        // end of stop byte for the bit
+		if (counter == 4'd15)   
+            // shift right out of the rightmost bit
+			data <= {1'b1, data[9:1]};
+
+        // if new transmission has been initiated
+		if (tx_init & ~tx_busy)
+		begin
+			sent <= 4'd0; // reset sent bits
+			tx_busy <= 1'b1; // mark the module as busy
+			data <= {1'b1, tx_data, 1'b0}; // first bit low, then the byte, and a stop bit = 1
+			counter <= 4'd0; // reset the counter
+		end
+
+        // end of bit, before stop byte
+		if (tx_busy & (counter == 4'd14))
+		begin
+			sent <= sent + 4'd1;
+
+            // if we're going to finish the transmission of last bit in the next
+            // cycle, we can mark us as not busy in this one, as it will take one
+            // cycle for the tx_init to reach us again
+			if (sent == 4'd9)
+				tx_busy <= 1'b0;
+		end
+
+		tx_serial <= data[0];
+	end
+
+endmodule
