@@ -27,6 +27,12 @@ module uart_comm (
 	localparam STATE_READ = 3'b010;
 	localparam STATE_PARSE = 3'b100;
 
+	localparam MSG_BUF_LEN = 60;
+
+	// Message Types
+	localparam MSG_INFO = 0;
+	localparam MSG_INVALID = 1;
+
 	reg [63:0] system_info = 256'hDEADBEEF13370D13;
 
 	wire reset = 0;
@@ -51,12 +57,6 @@ module uart_comm (
 	assign {status_led4, status_led3, status_led2, status_led1} = rx_byte[3:0];
 
 	assign error_led = recv_error;
-
-	localparam MSG_BUF_LEN = 60;
-
-	// Message Types
-	localparam MSG_INFO = 0;
-	localparam MSG_INVALID = 1;
 
 	uart #(
 		.baud_rate(9600),                 // The baud rate in kilobits/s
@@ -147,8 +147,8 @@ module uart_comm (
                 tx_byte <= msg_type;
             else if (length <= msg_length)
             begin
-                tx_byte <= msg_data[7:0];
-                msg_data <= {8'd0, msg_data[MSG_BUF_LEN*8-1:8]}; // right shift the data for a byte
+                tx_byte <= msg_data[MSG_BUF_LEN*8-1:MSG_BUF_LEN*7];
+                msg_data <= {msg_data[MSG_BUF_LEN*7-1:0], 8'd0}; // right shift the data for a byte
             end
 
             if (length == msg_length)
