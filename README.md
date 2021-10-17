@@ -4,9 +4,9 @@ Example UART project for Lattice icestick FPGA board. Supports PING & GET_INFO r
 
 Actual low level UART module is courtesy of https://github.com/cyrozap/osdvu.
 
-Built with apio (https://github.com/FPGAwars/apio).
+Built with PlatformIO.
 
-Build with `apio build`, run simulation with `apio sim`, upload with `apio upload`.
+Build with `pio run` upload with `pio run --target upload`.
 
 Compile C code with `gcc pc-comm.c -o pc-comm` to observe serial packets.
 
