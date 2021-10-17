@@ -20,20 +20,20 @@ module uart_comm (
     output wire status_led1,
     output wire status_led2,
     output wire status_led3,
-    output wire status_led4,
+    output wire status_led4
 );
 	// States
 	localparam STATE_IDLE = 3'b001;
 	localparam STATE_READ = 3'b010;
 	localparam STATE_PARSE = 3'b100;
 
-	localparam MSG_BUF_LEN = 57;
+	localparam MSG_BUF_LEN = 60;
 
 	// Message Types
 	localparam MSG_INFO = 0;
 	localparam MSG_INVALID = 1;
 
-	reg [63:0] system_info = 256'hDEADBEEF13370D13;
+	reg [63:0] system_info = 64'hDEADBEEF13370D13;
 
 	wire reset = 0;
 	reg transmit; // signal to start transmitting byte
@@ -147,9 +147,6 @@ module uart_comm (
                 tx_byte <= msg_type;
             else if (length <= msg_length)
             begin
-                // tx_byte <= msg_data[479:472]; 
-                // msg_data <= {msg_data[471:0], 8'd0}; // right shift the data for a byte
-
                 tx_byte <= msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)]; 
                 msg_data <= {msg_data[(((MSG_BUF_LEN-1)*8)-1):0], 8'd0}; // right shift the data for a byte
             end

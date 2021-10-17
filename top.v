@@ -6,7 +6,7 @@ module top (
     output wire D2,
     output wire D3,
     output wire D4,
-    output wire D5,
+    output wire D5
 );
 
 	uart_comm comm (
