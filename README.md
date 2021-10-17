@@ -19,3 +19,21 @@ Send packets to FPGA with bash command:
 Both should return either pong or the info you can find harcoded in the `uart_comm` file:
   - Pong: `0x01`
   - Get info response: `0x10 00 00 00 de ad be ef 13 37 0d 13 00 00 00 00`
+
+## Build stats
+
+FPGA usage is the following:
+
+After packing:
+IOs          8 / 96
+GBs          0 / 8
+  GB_IOs     0 / 8
+LCs          517 / 1280
+  DFF        166
+  CARRY      61
+  CARRY, DFF 0
+  DFF PASS   9
+  CARRY PASS 12
+BRAMs        0 / 16
+WARMBOOTs    0 / 1
+PLLs         0 / 1
