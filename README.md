@@ -1,6 +1,6 @@
 # ICEStick UART + packets encoding / decoding
 
-Example UART project for **Lattice icestick** FPGA board. Supports  PING` & `GET_INFO` requests from master (in our case the linux PC).
+Example UART project for **Lattice icestick** FPGA board. Supports `PING` & `GET_INFO` requests from master (in our case the linux PC).
 
 Actual low level UART module is courtesy of https://github.com/cyrozap/osdvu.
 
