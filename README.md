@@ -8,7 +8,7 @@ Built with PlatformIO.
 
 Build with `pio run` upload with `pio run --target upload`.
 
-Compile C code with `gcc pc-comm.c -o pc-comm` to observe serial packets.
+Compile C code with `gcc pc-comm.c -o pc-comm`  and run with `./pc-comm` to observe serial packets.
 
 Send packets to FPGA with bash command:
   - Get info: `echo -en '\x08\x00\x00\x00\x00\x00\x00\x00' > /dev/ttyUSB2`
