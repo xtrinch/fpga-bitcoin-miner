@@ -148,9 +148,7 @@ module uart_comm (
             else if (length <= msg_length)
             begin
                 tx_byte <= msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)]; 
-                msg_data <= {msg_data[(((MSG_BUF_LEN-1)*8)-1):0], 8'd0}; // right shift the data for a byte
-				// tx_byte <= msg_data[7:0];
-				// msg_data <= {8'd0, msg_data[MSG_BUF_LEN*8-1:8]}; 
+				msg_data <= msg_data << 8;
             end
 
             if (length == msg_length)
