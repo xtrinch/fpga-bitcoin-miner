@@ -1,4 +1,4 @@
-# ICEStick FPGA LED example project
+# ICEStick UART + packets encoding / decoding
 
 Example UART project for Lattice icestick FPGA board. Supports PING & GET_INFO requests from master.
 
