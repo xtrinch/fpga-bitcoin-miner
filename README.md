@@ -10,6 +10,8 @@ Built with PlatformIO.
 
 Build with `pio run` upload with `pio run --target upload`.
 
+Manual build with `make`.
+
 Compile C code with `gcc pc-comm.c -o pc-comm`  and run with `./pc-comm` to observe serial packets.
 
 Send packets to FPGA with bash command:
