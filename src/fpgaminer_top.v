@@ -16,7 +16,7 @@ module fpgaminer_top (
     // a setting of 1 will result in 64 rounds, with half the size and
 	// half the speed. 2 will be 32 rounds, with 1/4th the size and speed.
 	// Valid range: [0, 5]
-	parameter LOOP_LOG2 = 0;
+	parameter LOOP_LOG2 = 2;
 
 	// to make sure we always get exponents of number two;
     // values can be 1, 2, 4, 8, 16, 32

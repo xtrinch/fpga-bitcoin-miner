@@ -6,3 +6,6 @@
 *.vcd
 .pio/*
 build/
+**/__pycache__/
+*.pyc
+test

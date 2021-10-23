@@ -22,7 +22,7 @@
 # THE SOFTWARE.
 
 ### Use with running the following with bash in the folder where this file is:
-### python3 -c 'import midstate; print ((midstate.calculateMidstate(bytearray.fromhex("000000014cc2c57c7905fd399965282c87fe259e7da366e035dc087a0000141f000000006427b6492f2b052578fb4bc23655ca4e8b9e2b9b69c88041b2ac8c77"))).hex())'
+### python3 -c 'import midstate; print ((midstate.calculateMidstate(bytearray.fromhex("000000010000000000000000000000000000000000000000000000000000000000000000FDEDA33BB2127B7A3E2CC77A618F7667C31BC87F32518A88AAB89F3A"))).hex())'
 ### Where the hex data is the first 511 bits of the block header
 
 import struct
