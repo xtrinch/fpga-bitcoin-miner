@@ -18,12 +18,12 @@ module test_fpgaminer_top ();
     //     .reset(reset)
     // );
 
-	// genesis block
+	// genesis block; note: the nonce found needs to be byteswapped
 	fpgaminer_top # (.LOOP_LOG2(0)) uut (
         .hash_clk(clk),
-        .midstate_vw(256'hcac50bce512ab5db3b403357b5c4dc243f5fb115948b43a2ffe095975337e778),
-        .work_data(96'h4b1e5e4a29ab5f49ffff001d),
-        .nonce_min(32'h1dac2b7c - 2), // Minus a little so we can exercise the code a bit
+        .midstate_vw(256'h4719F91B96B187364F0103C8C3C8D8E91E59CAA890CCAC7D6358BFF0BC909A33),
+        .work_data(96'hFFFF001D29AB5F494B1E5E4A),
+        .nonce_min(32'h1DAC2B7C - 2), // Minus a little so we can exercise the code a bit
         .reset(reset)
     );
 
