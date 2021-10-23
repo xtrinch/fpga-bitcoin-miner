@@ -1,0 +1,30 @@
+Block header raw (little endian):
+0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c
+
+Block header by parts in little endian:
+Version:             01000000
+Previous block hash: 0000000000000000000000000000000000000000000000000000000000000000
+Merkle root:         3ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a
+Timestamp:           29ab5f49
+Difficulty target:   ffff001d
+Nonce:               1dac2b7c
+
+Block header by parts in big endian:
+Version:             00000001
+Previous block hash: 0000000000000000000000000000000000000000000000000000000000000000
+Merkle root:         4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+Timestamp:           495fab29
+Difficulty target:   1d00ffff
+Nonce:               7c2bac1d = 2083236893 decimal
+
+Midstate hash:
+Input: 0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa
+Hash (big endian): cac50bce512ab5db3b403357b5c4dc243f5fb115948b43a2ffe095975337e778
+Hash (little endian): 78E737539795E0FFA2438B9415B15F3F24DCC4B55733403BDBB52A51CE0BC5CA (*)
+
+Work data (12 bytes):
+Input (little endian): 4b1e5e4a29ab5f49ffff001d (*)
+Input (big endian): 1D00FFFF495FAB294A5E1E4B
+
+Nonce min: 1dac2b7a
+                       

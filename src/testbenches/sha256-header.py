@@ -54,3 +54,15 @@ hash = (sha256(sha256(
     )).digest()).digest().hex())
 print(hash)
 
+# genesis block
+hash = (sha256(sha256(
+    bytearray.fromhex(
+        "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c"
+    )).digest()).digest().hex())
+print(hash)
+
+hash = (sha256(sha256(
+    bytearray.fromhex(
+        "7C2BAC1D1D00FFFF495FAB294A5E1E4BAAB89F3A32518A88C31BC87F618F76673E2CC77AB2127B7AFDEDA33B000000000000000000000000000000000000000000000000000000000000000000000001"
+    )).digest()).digest().hex())
+print(hash)
