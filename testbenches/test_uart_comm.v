@@ -23,9 +23,9 @@ module uart_comm_tb;
 	wire [31:0] uut_noncemin, uut_noncemax;
 
 	localparam baud_rate = 1;
-	localparam sys_clk_freq = 16; // 32
+	localparam sys_clk_freq = 16; // 160/10
 
-	// sys_clk_freq/baud rate should match our delay of (160/5) per bit for tests (32 comm_clk cycles per bit)
+	// sys_clk_freq/baud rate should match our delay of (160/10) per bit for tests (16 comm_clk cycles per bit)
 	uart_comm #(
 		.baud_rate(baud_rate),
 		.sys_clk_freq(sys_clk_freq)
@@ -66,9 +66,9 @@ module uart_comm_tb;
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// // Bad length
-		// uart_send_byte (8'h6);
-		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+		// Bad length
+		uart_send_byte (8'h6);
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// // Bad CRC
 		// uart_send_byte (8'h08);

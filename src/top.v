@@ -33,7 +33,10 @@ module top (
 	    .nonce_max(nonce_max), // maximum nonce for job
     );
 
-	uart_comm comm (
+	uart_comm #(
+        .baud_rate(9600),
+        .sys_clk_freq(12000000),
+    ) comm (
 		.comm_clk (CLK),
         .golden_nonce(golden_nonce),
 	    .new_golden_ticket(new_golden_ticket), // whether we found a hash
