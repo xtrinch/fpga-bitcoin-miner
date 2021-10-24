@@ -1,5 +1,5 @@
 // Testbench for fpgaminer_top.v
-// iverilog -o test.sim test_fpgaminer_top.v ../fpgaminer_top.v ../sha256_transform.v ../sha256_functions.v
+// iverilog -o test.sim test_fpgaminer_top.v ../src/fpgaminer_top.v ../src/sha256_transform.v ../src/sha256_functions.v
 
 `timescale 1ns/1ps
 

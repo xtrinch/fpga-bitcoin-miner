@@ -13,10 +13,10 @@
 
 module uart_comm (
 	input wire sys_clk, // UART clock domain
-	input hash_clk, // hash clock domain
-	output reg [31:0] golden_nonce,
-	output reg is_golden_ticket, // whether we found a hash
+	input wire hash_clk, // hash clock domain
 	input wire rx_serial,
+	input wire [31:0] golden_nonce,
+	input wire is_golden_ticket, // whether we found a hash
 	output wire tx_serial,
     output wire error_led, // error led
     output wire status_led1,
@@ -121,6 +121,7 @@ module uart_comm (
 				msg_data <= meta_golden_nonce;
 				transmit_packet <= 1;
 				msg_type <= MSG_NONCE;
+				meta_is_golden_ticket <= 0;
 			end
 
 			// Reading packet into msg_data
