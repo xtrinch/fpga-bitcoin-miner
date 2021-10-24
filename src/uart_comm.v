@@ -174,13 +174,16 @@ module uart_comm (
 					end
 					else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
 					begin
+						$display("Push job command received!");
 						current_job <= msg_data[MSG_BUF_LEN*8-32-1:MSG_BUF_LEN*8-32-JOB_SIZE]; // header is in the beginning, so the job is on the left
 						new_work_flag <= ~new_work_flag;
 
 						msg_type <= MSG_ACK;
 					end
-					else
+					else begin
+						$display("Invalid command received!");
 						msg_type <= MSG_INVALID;
+					end
 				end
 			end
         endcase
@@ -196,7 +199,7 @@ module uart_comm (
                 tx_byte <= msg_length;
             else if (length == 8'd2 || length == 8'd3)
                 tx_byte <= 8'h00;
-            else if (length == 8'd4)
+            else if (length == 8'd4) // fourth byte
                 tx_byte <= msg_type;
             else if (length <= msg_length)
             begin

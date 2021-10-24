@@ -70,6 +70,27 @@ module uart_comm_tb;
 		uart_send_byte (8'h6);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
+		// PUSH_JOB
+		uart_send_byte (8'd60);
+		uart_send_byte (8'h00);
+		uart_send_byte (8'h00);
+		uart_send_byte (8'h02);
+		uart_send_word (32'h00000000);
+		uart_send_word (32'h1FFFFFFF);
+		uart_send_word (32'h0b0a0908);
+		uart_send_word (32'h0f0e0d0c);
+		uart_send_word (32'h13121110);
+		uart_send_word (32'h17161514);
+		uart_send_word (32'h1b1a1918);
+		uart_send_word (32'h1f1e1d1c);
+		uart_send_word (32'h23222120);
+		uart_send_word (32'h27262524);
+		uart_send_word (32'h2b2a2928);
+		uart_send_word (32'h2f2e2d2c);
+		uart_send_word (32'h33323130);
+		uart_send_word (32'h98c3a458);
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+
 		// // Bad CRC
 		// uart_send_byte (8'h08);
 		// uart_send_byte (8'h01);
@@ -100,27 +121,6 @@ module uart_comm_tb;
 		// uart_send_word (32'h2f2e2d2c);
 		// uart_send_word (32'h33323130);
 		// uart_send_word (32'h38b9b05a);
-		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
-
-		// // PUSH_JOB
-		// uart_send_byte (8'd60);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'h04);
-		// uart_send_word (32'h00000000);
-		// uart_send_word (32'h1FFFFFFF);
-		// uart_send_word (32'h0b0a0908);
-		// uart_send_word (32'h0f0e0d0c);
-		// uart_send_word (32'h13121110);
-		// uart_send_word (32'h17161514);
-		// uart_send_word (32'h1b1a1918);
-		// uart_send_word (32'h1f1e1d1c);
-		// uart_send_word (32'h23222120);
-		// uart_send_word (32'h27262524);
-		// uart_send_word (32'h2b2a2928);
-		// uart_send_word (32'h2f2e2d2c);
-		// uart_send_word (32'h33323130);
-		// uart_send_word (32'h98c3a458);
 		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		#3000;
@@ -175,6 +175,18 @@ module uart_comm_tb;
 		uart_expect_byte (8'd00);
 		$display ("PASSED: INVALID\n");
 
+		// ACK
+		$display ("Expecting ACK for push job...");
+		uart_expect_byte (8'd08);
+		uart_expect_byte (8'd00);
+		uart_expect_byte (8'd00);
+		uart_expect_byte (8'd04);
+		uart_recv_byte (tmp);
+		uart_recv_byte (tmp);
+		uart_recv_byte (tmp);
+		uart_recv_byte (tmp);
+		$display ("PASSED: ACK\n");
+
 		// RESEND
 		$display ("Expecting RESEND...");
 		uart_expect_byte (8'd08);
@@ -192,19 +204,7 @@ module uart_comm_tb;
 		uart_expect_byte (8'd08);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd02);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		$display ("PASSED: ACK\n");
-
-		// ACK
-		$display ("Expecting ACK...");
-		uart_expect_byte (8'd08);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd02);
+		uart_expect_byte (8'd04);
 		uart_recv_byte (tmp);
 		uart_recv_byte (tmp);
 		uart_recv_byte (tmp);

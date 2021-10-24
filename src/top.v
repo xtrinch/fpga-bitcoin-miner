@@ -22,7 +22,9 @@ module top (
     wire locked;							
     pll myPLL (.clock_in(CLK), .global_clock(hash_clk), .locked(locked));	
 
-    fpgaminer_top miner (
+    fpgaminer_top #(
+        .LOOP_LOG2(5) // 0-5
+    ) miner (
         .hash_clk (hash_clk),
         .midstate_vw(midstate),
 	    .work_data(work_data),
