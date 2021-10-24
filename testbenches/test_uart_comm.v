@@ -123,7 +123,11 @@ module uart_comm_tb;
 		// uart_send_word (32'h38b9b05a);
 		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		#3000;
+		// signal to the uart module that a valid hash has been found
+		uut_golden_nonce <= 32'h38b9b05a;
+		uut_new_nonce <= 1;
+
+		#20000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else
@@ -187,29 +191,41 @@ module uart_comm_tb;
 		uart_recv_byte (tmp);
 		$display ("PASSED: ACK\n");
 
-		// RESEND
-		$display ("Expecting RESEND...");
-		uart_expect_byte (8'd08);
+		$display ("Expecting MSG_NONCE...");
+		// wait for acknowledge of our golden ticket
+		@(posedge uut.meta_new_golden_ticket);
+		uart_expect_byte (8'h12);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd03);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		$display ("PASSED: RESEND\n");
+		uart_expect_byte (8'h38);
+		uart_expect_byte (8'hb9);
+		uart_expect_byte (8'hb0);
+		uart_expect_byte (8'h5a);
 
-		// ACK
-		$display ("Expecting ACK...");
-		uart_expect_byte (8'd08);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd04);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		$display ("PASSED: ACK\n");
+		// // RESEND
+		// $display ("Expecting RESEND...");
+		// uart_expect_byte (8'd08);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd03);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd00);
+		// $display ("PASSED: RESEND\n");
+
+		// // ACK
+		// $display ("Expecting ACK...");
+		// uart_expect_byte (8'd08);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd00);
+		// uart_expect_byte (8'd04);
+		// uart_recv_byte (tmp);
+		// uart_recv_byte (tmp);
+		// uart_recv_byte (tmp);
+		// uart_recv_byte (tmp);
+		// $display ("PASSED: ACK\n");
 
 		// Check job
 		if (uut_noncemin != 32'h1FFFFFFF || uut_noncemax != 32'h00000000 || uut_data != 96'h131211100f0e0d0c0b0a0908 || uut_midstate != 256'h333231302f2e2d2c2b2a292827262524232221201f1e1d1c1b1a191817161514)

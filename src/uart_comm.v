@@ -16,7 +16,7 @@ module uart_comm (
 	input wire hash_clk, // hash clock domain
 	input wire rx_serial,
 	input wire [31:0] golden_nonce,
-	input wire new_golden_ticket, // whether we found a hash
+	input wire new_golden_ticket, // whether we found a hash, is hash_clk synchronized
 	output wire tx_serial,
     output wire error_led, // error led
     output wire status_led1,
@@ -136,7 +136,7 @@ module uart_comm (
 				else if (meta_new_golden_ticket) begin
 					length <= 8'd1;
 					msg_length <= 8'h12; // 8 header + 4 for nonce
-					msg_data <= meta_golden_nonce;
+					msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-31] <= meta_golden_nonce;
 					transmit_packet <= 1;
 					msg_type <= MSG_NONCE;
 				end
@@ -212,10 +212,12 @@ module uart_comm (
         end
     end
 
-	// Cross from comm_clk to hash_clk
+	// Cross from comm_clk to hash_clk domain, see https://www.nandland.com/articles/crossing-clock-domains-in-an-fpga.html
+	// new work flag is being set from the uart logic, so we need to step it up to hash clk
 	reg [JOB_SIZE-1:0] meta_job;
 	reg [2:0] meta_new_work_flag;
 
+	// golden ticket is being set by the hash clock, so we need to step it down to uart clk
 	reg meta_new_golden_ticket;
 	reg [31:0] meta_golden_nonce;
 
@@ -223,10 +225,10 @@ module uart_comm (
 	begin
 		meta_job <= current_job;
 		meta_new_work_flag <= {new_work_flag, meta_new_work_flag[2:1]}; // right shift
-
-		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // why then three, if we only check the first two?
+		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
 		{midstate, work_data, nonce_min, nonce_max} <= meta_job;
 
+		// TODO: handle metastability just as with the new work flag
 		if (new_golden_ticket) begin
 			meta_new_golden_ticket <= 1;
 			meta_golden_nonce <= golden_nonce;

@@ -1,5 +1,6 @@
 // Testbench for fpgaminer_top.v
-// iverilog -o test.sim test_fpgaminer_top.v ../src/fpgaminer_top.v ../src/sha256_transform.v ../src/sha256_functions.v
+// run `make test-miner` to compile and run
+// see `genesis_block.txt` and `test_data.txt`
 
 `timescale 1ns/1ps
 

@@ -2,11 +2,11 @@ module top (
 	input wire CLK,
 	input wire RX,
 	output wire TX,
-    output wire D1,
-    output wire D2,
-    output wire D3,
-    output wire D4,
-    output wire D5,
+    // output wire D1,
+    // output wire D2,
+    // output wire D3,
+    // output wire D4,
+    // output wire D5,
 );
 
     reg [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
