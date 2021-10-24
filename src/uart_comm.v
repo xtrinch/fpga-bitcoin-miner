@@ -1,33 +1,33 @@
 
-// tx_data:		Work data.
+// work_data:		Work data.
 //
-// sys_clk:	16x the desired UART baud rate.
+// comm_clk:	16x the desired UART baud rate.
 // rx_serial:	UART RX (incoming)
 // tx_serial:	UART TX (outgoing)
 
 // Implemented incoming messages:
-// PING, GET_INFO
+// PING, GET_INFO, MSG_PUSH_JOB
 //
 // Implemented outgoing messages:
-// PONG, INFO, INVALID
+// PONG, INFO, INVALID, MSG_NONCE
 
 module uart_comm (
-	input wire sys_clk, // UART clock domain
+	input wire comm_clk, // UART clock domain
 	input wire hash_clk, // hash clock domain
 	input wire rx_serial,
 	input wire [31:0] golden_nonce,
-	input wire is_golden_ticket, // whether we found a hash
+	input wire new_golden_ticket, // whether we found a hash
 	output wire tx_serial,
     output wire error_led, // error led
     output wire status_led1,
     output wire status_led2,
     output wire status_led3,
     output wire status_led4,
-	output reg [95:0] tx_data = 96'd0, // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
-	output reg [31:0] tx_nonce_min = 32'd0, // minimum nonce for job
-	output reg [31:0] tx_nonce_max = 32'd0, // maximum nonce for job
-	output reg [255:0] tx_midstate = 256'd0, // midstate hash, hash of the leftmost 511 bits
-	output reg tx_new_work = 1'b0, // Indicate new work on midstate, data.
+	output reg [95:0] work_data = 96'd0, // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
+	output reg [31:0] nonce_min = 32'd0, // minimum nonce for job
+	output reg [31:0] nonce_max = 32'd0, // maximum nonce for job
+	output reg [255:0] midstate = 256'd0, // midstate hash, hash of the leftmost 511 bits
+	output reg new_work = 1'b0, // Indicate new work on midstate, data.
 );
 	// States
 	localparam STATE_IDLE = 3'b001;
@@ -80,7 +80,7 @@ module uart_comm (
 		.sys_clk_freq(12000000)           // The master clock frequency
 	)
 	uart0(
-		.clk(sys_clk),                    // The master clock for this module
+		.clk(comm_clk),                    // The master clock for this module
 		.rst(reset),                      // Synchronous reset
 		.rx(rx_serial),                   // Incoming serial line
 		.tx(tx_serial),                   // Outgoing serial line
@@ -93,7 +93,7 @@ module uart_comm (
 		.recv_error(recv_error)           // Indicates error in receiving packet.
 	);
 
-	always @(posedge sys_clk) begin
+	always @(posedge comm_clk) begin
         case (state)
         	// Waiting for new packet
 			STATE_IDLE:
@@ -115,13 +115,12 @@ module uart_comm (
                     state <= STATE_READ;
                 end
             end
-			else if (meta_is_golden_ticket) begin
+			else if (meta_new_golden_ticket) begin
 				length <= 8'd1;
 				msg_length <= 8'h12; // 8 header + 4 for nonce
 				msg_data <= meta_golden_nonce;
 				transmit_packet <= 1;
 				msg_type <= MSG_NONCE;
-				meta_is_golden_ticket <= 0;
 			end
 
 			// Reading packet into msg_data
@@ -191,7 +190,8 @@ module uart_comm (
 	// Cross from comm_clk to hash_clk
 	reg [JOB_SIZE-1:0] meta_job;
 	reg [2:0] meta_new_work_flag;
-	reg meta_is_golden_ticket;
+
+	reg meta_new_golden_ticket;
 	reg [31:0] meta_golden_nonce;
 
 	always @ (posedge hash_clk)
@@ -199,13 +199,16 @@ module uart_comm (
 		meta_job <= current_job;
 		meta_new_work_flag <= {new_work_flag, meta_new_work_flag[2:1]}; // right shift
 
-		tx_new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // why then three, if we only check the first two?
-		{tx_midstate, tx_data, tx_nonce_min, tx_nonce_max} <= meta_job;
+		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // why then three, if we only check the first two?
+		{midstate, work_data, nonce_min, nonce_max} <= meta_job;
 
-		if (is_golden_ticket) begin
-			// do something
-			meta_is_golden_ticket <= 1;
+		if (new_golden_ticket) begin
+			meta_new_golden_ticket <= 1;
 			meta_golden_nonce <= golden_nonce;
+		end
+		// if we've scheduled the nonce msg to go out, we can reset the meta
+		if (msg_type == MSG_NONCE) begin
+			meta_new_golden_ticket <= 0;
 		end
 	end
 endmodule

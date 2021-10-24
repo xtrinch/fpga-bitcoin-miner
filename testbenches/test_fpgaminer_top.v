@@ -8,6 +8,8 @@ module test_fpgaminer_top ();
 
 	reg clk = 1'b0;
     reg reset = 1'b0;
+	wire new_golden_ticket;
+	wire [31:0] golden_nonce;
 
 	// setup as it is in test_data.txt
 	// fpgaminer_top # (.LOOP_LOG2(0)) uut (
@@ -18,13 +20,15 @@ module test_fpgaminer_top ();
     //     .reset(reset)
     // );
 
-	// genesis block; note: the nonce found needs to be byteswapped
+	// genesis block; note: the nonce found needs to be byteswapped to compare it to blockhain explorer nonce
 	fpgaminer_top # (.LOOP_LOG2(0)) uut (
         .hash_clk(clk),
         .midstate_vw(256'h4719F91B96B187364F0103C8C3C8D8E91E59CAA890CCAC7D6358BFF0BC909A33),
         .work_data(96'hFFFF001D29AB5F494B1E5E4A),
         .nonce_min(32'h1DAC2B7C - 2), // Minus a little so we can exercise the code a bit
-        .reset(reset)
+        .reset(reset),
+		.new_golden_ticket(new_golden_ticket),
+		.golden_nonce(golden_nonce)
     );
 
 	reg [31:0] cycle = 32'd0;
@@ -46,13 +50,15 @@ module test_fpgaminer_top ();
 		end
 	end
 
-    initial begin
-        $display ("SIM is not defined :(\n");
-    end
-
 	always @ (posedge clk)
 	begin
 		cycle <= cycle + 32'd1;
 	end
 
+	always @ (posedge clk) begin
+		if (new_golden_ticket) begin
+			$display("Finished tests, nonce is: %8x\n", golden_nonce);
+			$finish;
+		end
+	end
 endmodule

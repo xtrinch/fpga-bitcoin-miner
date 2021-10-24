@@ -8,7 +8,7 @@ module fpgaminer_top (
 	input wire [31:0] nonce_max, // maximum nonce for job
 	input wire reset,
 	output reg [31:0] golden_nonce = 0,
-	output reg is_golden_ticket = 1'b0 // whether we found a hash
+	output reg new_golden_ticket = 1'b0 // whether we found a hash
 );
 	// determines how unrolled the SHA-256 calculations are. 
     // a setting of 0 will completely unroll the calculations, 
@@ -16,7 +16,7 @@ module fpgaminer_top (
     // a setting of 1 will result in 64 rounds, with half the size and
 	// half the speed. 2 will be 32 rounds, with 1/4th the size and speed.
 	// Valid range: [0, 5]
-	parameter LOOP_LOG2 = 1;
+	parameter LOOP_LOG2 = 3;
 
 	// to make sure we always get exponents of number two;
     // values can be 1, 2, 4, 8, 16, 32
@@ -66,6 +66,7 @@ module fpgaminer_top (
 
 	//// Control Unit
 	reg feedback_d1 = 1'b1; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
+	reg golden_nonce_found = 1'b0; // output is delayed for 1 cycle behind internal value
 	wire [5:0] cnt_next;
 	wire [31:0] nonce_next;
 	wire feedback_next;
@@ -94,6 +95,7 @@ module fpgaminer_top (
 		cnt <= cnt_next;
 		feedback <= feedback_next;
 		feedback_d1 <= feedback;
+		new_golden_ticket <= golden_nonce_found; // output is delayed by one cycle to make sure the nonce is written into golden_nonce
 
         // { padding length=384 bits, nonce, data=12 bytes }
         // 0x00000280 = 640
@@ -102,8 +104,8 @@ module fpgaminer_top (
 		nonce <= nonce_next;
 
 		// Check to see if the last hash generated is valid.
-		is_golden_ticket <= (hash2[255:224] == 32'h00000000) && !feedback_d1;
-		if(is_golden_ticket)
+		golden_nonce_found <= (hash2[255:224] == 32'h00000000) && !feedback_d1;
+		if(golden_nonce_found)
 		begin
 			wait_for_work <= 1'b1;
 			case (LOOP)
