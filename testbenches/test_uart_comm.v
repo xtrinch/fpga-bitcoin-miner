@@ -2,7 +2,6 @@
 
 // Works with Icarus Verilog
 module uart_comm_tb;
-
 	// Clocks
 	reg comm_clk = 0;
 	reg hash_clk = 0;
@@ -23,7 +22,14 @@ module uart_comm_tb;
 	wire [95:0] uut_data;
 	wire [31:0] uut_noncemin, uut_noncemax;
 
-	uart_comm uut (
+	localparam baud_rate = 1;
+	localparam sys_clk_freq = 16; // 32
+
+	// sys_clk_freq/baud rate should match our delay of (160/5) per bit for tests (32 comm_clk cycles per bit)
+	uart_comm #(
+		.baud_rate(baud_rate),
+		.sys_clk_freq(sys_clk_freq)
+	) uut (
 		.hash_clk (hash_clk),
         .comm_clk (comm_clk),
         .work_data (uut_data),
@@ -31,10 +37,10 @@ module uart_comm_tb;
 		.nonce_max (uut_noncemax),
         .midstate (uut_midstate),
         .rx_serial (uut_rx),
-		.tx_serial (uut_tx)
+		.tx_serial (uut_tx),
 		.new_work (uut_new_work),
 		.new_golden_ticket (uut_new_nonce),
-		.golden_nonce (uut_golden_nonce),
+		.golden_nonce (uut_golden_nonce)
 		// .rx_need_work (uut_need_work),
 	);
 
@@ -42,80 +48,80 @@ module uart_comm_tb;
 	initial
 	begin
 		#100;
-		uart_gap;
+		uart_delay;
 
 		// PING
 		uart_send_byte (8'h00);
-		uart_gap;
+		uart_delay;
 
 		// GET_INFO
-		uart_send_byte (8'h08);
+		uart_send_byte (8'h08); // message length
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00);
-		uart_send_byte (8'h00);
+		uart_send_byte (8'h00); // message type
 		uart_send_byte (8'hf9);
 		uart_send_byte (8'hea);
 		uart_send_byte (8'h98);
 		uart_send_byte (8'h0a);
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// Bad length
-		uart_send_byte (8'h6);
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
+		// // Bad length
+		// uart_send_byte (8'h6);
+		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// Bad CRC
-		uart_send_byte (8'h08);
-		uart_send_byte (8'h01);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'b11111001);
-		uart_send_byte (8'b11101010);
-		uart_send_byte (8'b10011000);
-		uart_send_byte (8'b00001010);
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
+		// // Bad CRC
+		// uart_send_byte (8'h08);
+		// uart_send_byte (8'h01);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'b11111001);
+		// uart_send_byte (8'b11101010);
+		// uart_send_byte (8'b10011000);
+		// uart_send_byte (8'b00001010);
+		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// QUEUE_JOB
-		uart_send_byte (8'd60);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h05);
-		uart_send_word (32'h00000000);
-		uart_send_word (32'hFFFFFFFF);
-		uart_send_word (32'h0b0a0908);
-		uart_send_word (32'h0f0e0d0c);
-		uart_send_word (32'h13121110);
-		uart_send_word (32'h17161514);
-		uart_send_word (32'h1b1a1918);
-		uart_send_word (32'h1f1e1d1c);
-		uart_send_word (32'h23222120);
-		uart_send_word (32'h27262524);
-		uart_send_word (32'h2b2a2928);
-		uart_send_word (32'h2f2e2d2c);
-		uart_send_word (32'h33323130);
-		uart_send_word (32'h38b9b05a);
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
+		// // QUEUE_JOB
+		// uart_send_byte (8'd60);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'h05);
+		// uart_send_word (32'h00000000);
+		// uart_send_word (32'hFFFFFFFF);
+		// uart_send_word (32'h0b0a0908);
+		// uart_send_word (32'h0f0e0d0c);
+		// uart_send_word (32'h13121110);
+		// uart_send_word (32'h17161514);
+		// uart_send_word (32'h1b1a1918);
+		// uart_send_word (32'h1f1e1d1c);
+		// uart_send_word (32'h23222120);
+		// uart_send_word (32'h27262524);
+		// uart_send_word (32'h2b2a2928);
+		// uart_send_word (32'h2f2e2d2c);
+		// uart_send_word (32'h33323130);
+		// uart_send_word (32'h38b9b05a);
+		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// PUSH_JOB
-		uart_send_byte (8'd60);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h04);
-		uart_send_word (32'h00000000);
-		uart_send_word (32'h1FFFFFFF);
-		uart_send_word (32'h0b0a0908);
-		uart_send_word (32'h0f0e0d0c);
-		uart_send_word (32'h13121110);
-		uart_send_word (32'h17161514);
-		uart_send_word (32'h1b1a1918);
-		uart_send_word (32'h1f1e1d1c);
-		uart_send_word (32'h23222120);
-		uart_send_word (32'h27262524);
-		uart_send_word (32'h2b2a2928);
-		uart_send_word (32'h2f2e2d2c);
-		uart_send_word (32'h33323130);
-		uart_send_word (32'h98c3a458);
-		uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap; uart_gap;
+		// // PUSH_JOB
+		// uart_send_byte (8'd60);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'h00);
+		// uart_send_byte (8'h04);
+		// uart_send_word (32'h00000000);
+		// uart_send_word (32'h1FFFFFFF);
+		// uart_send_word (32'h0b0a0908);
+		// uart_send_word (32'h0f0e0d0c);
+		// uart_send_word (32'h13121110);
+		// uart_send_word (32'h17161514);
+		// uart_send_word (32'h1b1a1918);
+		// uart_send_word (32'h1f1e1d1c);
+		// uart_send_word (32'h23222120);
+		// uart_send_word (32'h27262524);
+		// uart_send_word (32'h2b2a2928);
+		// uart_send_word (32'h2f2e2d2c);
+		// uart_send_word (32'h33323130);
+		// uart_send_word (32'h98c3a458);
+		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		#3000;
 		if (test_passed)
@@ -143,14 +149,14 @@ module uart_comm_tb;
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
+		uart_expect_byte (8'hde);
+		uart_expect_byte (8'had);
+		uart_expect_byte (8'hbe);
+		uart_expect_byte (8'hef);
 		uart_expect_byte (8'h13);
-		uart_expect_byte (8'h0D);
 		uart_expect_byte (8'h37);
+		uart_expect_byte (8'h0d);
 		uart_expect_byte (8'h13);
-		uart_expect_byte (8'hEF);
-		uart_expect_byte (8'hBE);
-		uart_expect_byte (8'hAD);
-		uart_expect_byte (8'hDE);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
@@ -224,17 +230,22 @@ module uart_comm_tb;
 	end
 
 	// Tasks
-	task uart_gap;
+	task uart_delay;
 	begin
 		#1600;
 	end
 	endtask
 
+	// task delay(input integer N); begin
+    //     repeat(N) @(posedge clk);
+    // end endtask  
+
+    // send one byte via uart, start byte = 0, stop byte = 1
 	task uart_send_byte;
 	input [7:0] byte;
 	begin
-		uut_rx = 0; #160;
-		uut_rx = byte[0]; #160;
+		uut_rx = 0;       #160
+		uut_rx = byte[0]; #160
 		uut_rx = byte[1]; #160;
 		uut_rx = byte[2]; #160;
 		uut_rx = byte[3]; #160;
@@ -248,6 +259,7 @@ module uart_comm_tb;
 	end
 	endtask
 
+    // send one 4 byte word via uart
 	task uart_send_word;
 	input [31:0] word;
 	begin
@@ -285,6 +297,7 @@ module uart_comm_tb;
 	end
 	endtask
 
+	// expect a response on the tx line
 	task uart_expect_byte;
 	input [7:0] byte;
 	reg [7:0] tmp;

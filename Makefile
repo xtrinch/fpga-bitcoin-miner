@@ -10,6 +10,9 @@ FILES = src/fpgaminer_top.v src/sha256_functions.v src/sha256_transform.v src/to
 .PHONY: all clean burn
 
 all:
+	# clean old build data
+	rm $(BUILD)/*
+	
 	# if build folder doesn't exist, create it
 	mkdir -p $(BUILD)
 	
@@ -21,6 +24,14 @@ all:
 
 	# Convert to bitstream using IcePack
 	icepack $(BUILD)/$(NAME).asc $(BUILD)/$(NAME).bin
+
+test-miner:
+	iverilog -o ./testbenches/test-miner.sim ./testbenches/test_fpgaminer_top.v ./src/fpgaminer_top.v ./src/sha256_transform.v ./src/sha256_functions.v
+	./testbenches/test-miner.sim
+
+test-uart:
+	iverilog -o ./testbenches/test-uart.sim ./testbenches/test_uart_comm.v ./src/uart_comm.v ./src/uart.v src/uart_tx.v src/uart_rx.v
+	./testbenches/test-uart.sim
 
 burn:
 	iceprog $(BUILD)/$(NAME).bin

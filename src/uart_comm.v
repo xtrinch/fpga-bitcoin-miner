@@ -27,7 +27,7 @@ module uart_comm (
 	output reg [31:0] nonce_min = 32'd0, // minimum nonce for job
 	output reg [31:0] nonce_max = 32'd0, // maximum nonce for job
 	output reg [255:0] midstate = 256'd0, // midstate hash, hash of the leftmost 511 bits
-	output reg new_work = 1'b0, // Indicate new work on midstate, data.
+	output reg new_work = 1'b0 // Indicate new work on midstate, data.
 );
 	// States
 	localparam STATE_IDLE = 3'b001;
@@ -75,9 +75,12 @@ module uart_comm (
 
 	assign error_led = recv_error;
 
+    parameter baud_rate = 9600;
+    parameter sys_clk_freq = 12000000;
+	
 	uart #(
-		.baud_rate(9600),                 // The baud rate in kilobits/s
-		.sys_clk_freq(12000000)           // The master clock frequency
+		.baud_rate(baud_rate),                 // The baud rate in kilobits/s
+		.sys_clk_freq(sys_clk_freq)           // The master clock frequency
 	)
 	uart0(
 		.clk(comm_clk),                    // The master clock for this module
@@ -93,73 +96,92 @@ module uart_comm (
 		.recv_error(recv_error)           // Indicates error in receiving packet.
 	);
 
+	// uart_rx uart_rx_blk (
+	// 	.clk (comm_clk),
+	// 	.rx_serial (rx_serial),
+	// 	.received (received),
+	// 	.rx_byte (rx_byte)
+	// );
+
+	// uart_tx uart_tx_blk (
+	// 	.clk (comm_clk),
+	// 	.tx_serial (tx_serial),
+	// 	.transmit (transmit),
+	// 	.tx_byte (tx_byte),
+	// 	.is_transmitting (is_transmitting)
+	// );
+
 	always @(posedge comm_clk) begin
         case (state)
         	// Waiting for new packet
-			STATE_IDLE:
-            if (received) begin
-                if (rx_byte == 0) begin // ping received, send pong
-                    length <= 8'd1;
-                    msg_length <= 8'h1;
-                    transmit_packet <= 1; // TODO: do with ack
-                end
-                else if (rx_byte < 8) begin	// Invalid Length, 8 bytes is the smallest, send message invalid
-                    length <= 8'd1;
-                    msg_length <= 8'h8;
-                    msg_type <= MSG_INVALID;
-                    transmit_packet <= 1;
-                end
-                else begin // received a valid length, continue to read
-                    length <= 8'd2; // starts at two because the first one is the packet length
-                    msg_length <= rx_byte;
-                    state <= STATE_READ;
-                end
-            end
-			else if (meta_new_golden_ticket) begin
-				length <= 8'd1;
-				msg_length <= 8'h12; // 8 header + 4 for nonce
-				msg_data <= meta_golden_nonce;
-				transmit_packet <= 1;
-				msg_type <= MSG_NONCE;
+			STATE_IDLE: begin
+				if (received) begin
+					if (rx_byte == 0) begin // ping received, send pong
+						length <= 8'd1;
+						msg_length <= 8'h1;
+						transmit_packet <= 1; // TODO: do with ack
+					end
+					else if (rx_byte < 8) begin	// Invalid Length, 8 bytes is the smallest, send message invalid
+						length <= 8'd1;
+						msg_length <= 8'h8;
+						msg_type <= MSG_INVALID;
+						transmit_packet <= 1;
+					end
+					else begin // received a valid length, continue to read
+						length <= 8'd2; // starts at two because the first one is the packet length
+						msg_length <= rx_byte;
+						state <= STATE_READ;
+					end
+				end
+				else if (meta_new_golden_ticket) begin
+					length <= 8'd1;
+					msg_length <= 8'h12; // 8 header + 4 for nonce
+					msg_data <= meta_golden_nonce;
+					transmit_packet <= 1;
+					msg_type <= MSG_NONCE;
+				end
 			end
 
 			// Reading packet into msg_data
-			STATE_READ: 
-            if (received) begin
-				msg_data <= {rx_byte, msg_data[MSG_BUF_LEN*8-1:8]}; // shift right by 8 bits and put in the new received byte
-				length <= length + 8'd1;
+			STATE_READ: begin
+				if (received) begin
+					msg_data <= {rx_byte, msg_data[MSG_BUF_LEN*8-1:8]}; // shift right by 8 bits and put in the new received byte
+					length <= length + 8'd1;
 
-				if (length == 8'd4) // when at 4th byte, we're at message type
-					msg_type <= rx_byte;
+					if (length == 8'd4) // when at 4th byte, we're at message type
+						msg_type <= rx_byte;
 
-				if (length == msg_length) // finished, parse the packet
-					state <= STATE_PARSE;
+					if (length == msg_length) // finished, parse the packet
+						state <= STATE_PARSE;
+				end
 			end
 
 			// Parse packet
-			STATE_PARSE: 
-            if (!transmit_packet) begin // if we're still transmitting a packet, wait
-				// By default, we'll send some kind of
-				// response. Special cases are handled below.
-				length <= 8'd1;
-				msg_length <= 8'd8;
-				state <= STATE_IDLE;
-                transmit_packet <= 1;
+			STATE_PARSE: begin
+				if (!transmit_packet) begin // if we're still transmitting a packet, wait
+					// By default, we'll send some kind of
+					// response. Special cases are handled below.
+					length <= 8'd1;
+					msg_length <= 8'd8;
+					state <= STATE_IDLE;
+					transmit_packet <= 1;
 
-				if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
-					msg_type <= MSG_INFO;
-					msg_data <= system_info;
-					msg_length <= 8'd16;
-				end
-				else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
-				begin
-					current_job <= msg_data[MSG_BUF_LEN*8-32-1:MSG_BUF_LEN*8-32-JOB_SIZE]; // header is in the beginning, so the job is on the left
-					new_work_flag <= ~new_work_flag;
+					if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
+						$display("Info command received!");
+						msg_type <= MSG_INFO;
+						msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-63] <= system_info;
+						msg_length <= 8'd16;
+					end
+					else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
+					begin
+						current_job <= msg_data[MSG_BUF_LEN*8-32-1:MSG_BUF_LEN*8-32-JOB_SIZE]; // header is in the beginning, so the job is on the left
+						new_work_flag <= ~new_work_flag;
 
-					msg_type <= MSG_ACK;
+						msg_type <= MSG_ACK;
+					end
+					else
+						msg_type <= MSG_INVALID;
 				end
-				else
-					msg_type <= MSG_INVALID;
 			end
         endcase
 
