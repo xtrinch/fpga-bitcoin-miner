@@ -39,7 +39,7 @@ module uart_comm_tb;
         .rx_serial (uut_rx),
 		.tx_serial (uut_tx),
 		.new_work (uut_new_work),
-		.new_golden_ticket (uut_new_nonce),
+		.new_golden_nonce (uut_new_nonce),
 		.golden_nonce (uut_golden_nonce)
 		// .rx_need_work (uut_need_work),
 	);
@@ -89,7 +89,7 @@ module uart_comm_tb;
 		uart_send_word (32'h2f2e2d2c);
 		uart_send_word (32'h33323130);
 		uart_send_word (32'h98c3a458);
-		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// // Bad CRC
 		// uart_send_byte (8'h08);
@@ -127,7 +127,7 @@ module uart_comm_tb;
 		uut_golden_nonce <= 32'h38b9b05a;
 		uut_new_nonce <= 1;
 
-		#20000;
+		#30000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else
@@ -193,8 +193,8 @@ module uart_comm_tb;
 
 		$display ("Expecting MSG_NONCE...");
 		// wait for acknowledge of our golden ticket
-		@(posedge uut.meta_new_golden_ticket);
-		uart_expect_byte (8'h12);
+		@(posedge uut.meta_new_golden_nonce);
+		uart_expect_byte (8'd8); // not sure, why not just 8?
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd03);
@@ -202,6 +202,7 @@ module uart_comm_tb;
 		uart_expect_byte (8'hb9);
 		uart_expect_byte (8'hb0);
 		uart_expect_byte (8'h5a);
+		$display ("PASSED: MSG_NONCE\n");
 
 		// // RESEND
 		// $display ("Expecting RESEND...");

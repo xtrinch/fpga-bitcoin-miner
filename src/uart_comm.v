@@ -16,7 +16,7 @@ module uart_comm (
 	input wire hash_clk, // hash clock domain
 	input wire rx_serial,
 	input wire [31:0] golden_nonce,
-	input wire new_golden_ticket, // whether we found a hash, is hash_clk synchronized
+	input wire new_golden_nonce, // whether we found a hash, is hash_clk synchronized
 	output wire tx_serial,
     output wire error_led, // error led
     output wire status_led1,
@@ -133,9 +133,9 @@ module uart_comm (
 						state <= STATE_READ;
 					end
 				end
-				else if (meta_new_golden_ticket) begin
+				else if (meta_new_golden_nonce) begin
 					length <= 8'd1;
-					msg_length <= 8'h12; // 8 header + 4 for nonce
+					msg_length <= 8'd8; // 4 header + 4 for nonce
 					msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-31] <= meta_golden_nonce;
 					transmit_packet <= 1;
 					msg_type <= MSG_NONCE;
@@ -203,6 +203,7 @@ module uart_comm (
                 tx_byte <= msg_type;
             else if (length <= msg_length)
             begin
+				// $display("transmit byte comm: %8d, msgtype: %2d, lenght: %3d", msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)], msg_type, msg_length);
                 tx_byte <= msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)]; 
 				msg_data <= msg_data << 8;
             end
@@ -218,7 +219,8 @@ module uart_comm (
 	reg [2:0] meta_new_work_flag;
 
 	// golden ticket is being set by the hash clock, so we need to step it down to uart clk
-	reg meta_new_golden_ticket;
+	reg [2:0] meta_golden_nonce_flag;
+	reg meta_new_golden_nonce;
 	reg [31:0] meta_golden_nonce;
 
 	always @ (posedge hash_clk)
@@ -228,14 +230,17 @@ module uart_comm (
 		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
 		{midstate, work_data, nonce_min, nonce_max} <= meta_job;
 
+
+		meta_golden_nonce_flag <= {new_golden_nonce, meta_golden_nonce_flag[2:1]}; // right shift
+		meta_new_golden_nonce <= meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
+
 		// TODO: handle metastability just as with the new work flag
-		if (new_golden_ticket) begin
-			meta_new_golden_ticket <= 1;
+		if (new_golden_nonce) begin
 			meta_golden_nonce <= golden_nonce;
 		end
 		// if we've scheduled the nonce msg to go out, we can reset the meta
 		if (msg_type == MSG_NONCE) begin
-			meta_new_golden_ticket <= 0;
+			meta_new_golden_nonce <= 0;
 		end
 	end
 endmodule

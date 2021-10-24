@@ -14,7 +14,7 @@ module top (
 	reg [31:0] nonce_max; // maximum nonce for job
 	reg [255:0] midstate; // midstate hash, hash of the leftmost 511 bits
     reg rx_new_work; // Indicate new work on midstate, data.
-    reg new_golden_ticket;
+    reg new_golden_nonce;
     reg [31:0] golden_nonce;
 
     // PLL to get 100.5MHz clock						
@@ -30,7 +30,7 @@ module top (
 	    .work_data(work_data),
         .reset(rx_new_work),
         .golden_nonce(golden_nonce),
-	    .new_golden_ticket(new_golden_ticket), // whether we found a hash
+	    .new_golden_nonce(new_golden_nonce), // whether we found a hash
         .nonce_min(nonce_min), // minimum nonce for job
 	    .nonce_max(nonce_max), // maximum nonce for job
     );
@@ -41,7 +41,7 @@ module top (
     ) comm (
 		.comm_clk (CLK),
         .golden_nonce(golden_nonce),
-	    .new_golden_ticket(new_golden_ticket), // whether we found a hash
+	    .new_golden_nonce(new_golden_nonce), // whether we found a hash
         .hash_clk (hash_clk),
 		.rx_serial (RX),
 		.tx_serial (TX),

@@ -9,7 +9,7 @@ module test_fpgaminer_top ();
 
 	reg clk = 1'b0;
     reg reset = 1'b0;
-	wire new_golden_ticket;
+	wire new_golden_nonce;
 	wire [31:0] golden_nonce;
 
 	// setup as it is in test_data.txt
@@ -28,7 +28,7 @@ module test_fpgaminer_top ();
         .work_data(96'hFFFF001D29AB5F494B1E5E4A),
         .nonce_min(32'h1DAC2B7C - 2), // Minus a little so we can exercise the code a bit
         .reset(reset),
-		.new_golden_ticket(new_golden_ticket),
+		.new_golden_nonce(new_golden_nonce),
 		.golden_nonce(golden_nonce)
     );
 
@@ -50,7 +50,7 @@ module test_fpgaminer_top ();
 	end
 
 	always @ (posedge clk) begin
-		if (new_golden_ticket) begin
+		if (new_golden_nonce) begin
 			$display("Finished tests, nonce is: %8x\n", golden_nonce);
 			$finish;
 		end

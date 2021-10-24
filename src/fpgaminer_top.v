@@ -8,7 +8,7 @@ module fpgaminer_top (
 	input wire [31:0] nonce_max, // maximum nonce for job
 	input wire reset,
 	output reg [31:0] golden_nonce = 0,
-	output reg new_golden_ticket = 1'b0 // whether we found a hash
+	output reg new_golden_nonce = 1'b0 // whether we found a hash
 );
 	// determines how unrolled the SHA-256 calculations are. 
     // a setting of 0 will completely unroll the calculations, 
@@ -95,7 +95,7 @@ module fpgaminer_top (
 		cnt <= cnt_next;
 		feedback <= feedback_next;
 		feedback_d1 <= feedback;
-		new_golden_ticket <= golden_nonce_found; // output is delayed by one cycle to make sure the nonce is written into golden_nonce
+		new_golden_nonce <= golden_nonce_found; // output is delayed by one cycle to make sure the nonce is written into golden_nonce
 
         // { padding length=384 bits, nonce, data=12 bytes }
         // 0x00000280 = 640
