@@ -1,7 +1,11 @@
 `timescale 1ns/1ps
 
-// Works with Icarus Verilog
-module uart_comm_tb;
+// the idea of this module is to send job via uart,
+// wait for the miner to mine it, and check that it
+// has sent the correct golden nonce back via uart
+
+// the example to be mined is the genesis block (see genesis_block.txt)
+module test_fpgaminer_top ();
 	// Clocks
 	reg comm_clk = 0;
 	reg hash_clk = 0;
@@ -25,24 +29,11 @@ module uart_comm_tb;
 	localparam baud_rate = 1;
 	localparam sys_clk_freq = 16; // 160/10
 
-	// sys_clk_freq/baud rate should match our delay of (160/10) per bit for tests (16 comm_clk cycles per bit)
-	uart_comm #(
-		.baud_rate(baud_rate),
-		.sys_clk_freq(sys_clk_freq)
-	) uut (
-		.hash_clk (hash_clk),
-        .comm_clk (comm_clk),
-        .work_data (uut_data),
-		.nonce_min (uut_noncemin),
-		.nonce_max (uut_noncemax),
-        .midstate (uut_midstate),
-        .rx_serial (uut_rx),
-		.tx_serial (uut_tx),
-		.new_work (uut_new_work),
-		.new_golden_nonce (uut_new_nonce),
-		.golden_nonce (uut_golden_nonce)
-		// .rx_need_work (uut_need_work),
-	);
+    top miner (
+        .CLK(comm_clk),
+        .RX(uut_rx),
+        .TX(uut_tx)
+    );
 
 	// Test Input Data
 	initial
@@ -90,38 +81,6 @@ module uart_comm_tb;
 		uart_send_word (32'h33323130);
 		uart_send_word (32'h98c3a458);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
-
-		// // Bad CRC
-		// uart_send_byte (8'h08);
-		// uart_send_byte (8'h01);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'b11111001);
-		// uart_send_byte (8'b11101010);
-		// uart_send_byte (8'b10011000);
-		// uart_send_byte (8'b00001010);
-		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
-
-		// // QUEUE_JOB
-		// uart_send_byte (8'd60);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'h00);
-		// uart_send_byte (8'h05);
-		// uart_send_word (32'h00000000);
-		// uart_send_word (32'hFFFFFFFF);
-		// uart_send_word (32'h0b0a0908);
-		// uart_send_word (32'h0f0e0d0c);
-		// uart_send_word (32'h13121110);
-		// uart_send_word (32'h17161514);
-		// uart_send_word (32'h1b1a1918);
-		// uart_send_word (32'h1f1e1d1c);
-		// uart_send_word (32'h23222120);
-		// uart_send_word (32'h27262524);
-		// uart_send_word (32'h2b2a2928);
-		// uart_send_word (32'h2f2e2d2c);
-		// uart_send_word (32'h33323130);
-		// uart_send_word (32'h38b9b05a);
-		// uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// signal to the uart module that a valid hash has been found
 		uut_golden_nonce <= 32'h38b9b05a;
@@ -193,7 +152,6 @@ module uart_comm_tb;
 
 		$display ("Expecting MSG_NONCE...");
 		// wait for acknowledge of our golden ticket
-		@(posedge uut.meta_new_golden_nonce);
 		uart_expect_byte (8'd8); // not sure, why not just 8?
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
@@ -203,30 +161,6 @@ module uart_comm_tb;
 		uart_expect_byte (8'hb0);
 		uart_expect_byte (8'h5a);
 		$display ("PASSED: MSG_NONCE\n");
-
-		// // RESEND
-		// $display ("Expecting RESEND...");
-		// uart_expect_byte (8'd08);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd03);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd00);
-		// $display ("PASSED: RESEND\n");
-
-		// // ACK
-		// $display ("Expecting ACK...");
-		// uart_expect_byte (8'd08);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd00);
-		// uart_expect_byte (8'd04);
-		// uart_recv_byte (tmp);
-		// uart_recv_byte (tmp);
-		// uart_recv_byte (tmp);
-		// uart_recv_byte (tmp);
-		// $display ("PASSED: ACK\n");
 
 		// Check job
 		if (uut_noncemin != 32'h1FFFFFFF || uut_noncemax != 32'h00000000 || uut_data != 96'h131211100f0e0d0c0b0a0908 || uut_midstate != 256'h333231302f2e2d2c2b2a292827262524232221201f1e1d1c1b1a191817161514)
@@ -243,7 +177,6 @@ module uart_comm_tb;
 	initial
 	begin
 		$dumpfile("uart_comm_tb.vcd");
-		$dumpvars(0, uut);
 	end
 
 	// Tasks
@@ -252,10 +185,6 @@ module uart_comm_tb;
 		#1600;
 	end
 	endtask
-
-	// task delay(input integer N); begin
-    //     repeat(N) @(posedge clk);
-    // end endtask  
 
     // send one byte via uart, start byte = 0, stop byte = 1
 	task uart_send_byte;
@@ -328,5 +257,4 @@ module uart_comm_tb;
 		end
 	end
 	endtask
-
 endmodule

@@ -30,8 +30,12 @@ test-miner:
 	./testbenches/test-miner.sim
 
 test-uart:
-	iverilog -o ./testbenches/test-uart.sim ./testbenches/test_uart_comm.v ./src/uart_comm.v ./src/uart.v src/uart_tx.v src/uart_rx.v
+	iverilog -o ./testbenches/test-uart.sim ./testbenches/test_uart_comm.v ./src/uart_comm.v ./src/uart.v
 	./testbenches/test-uart.sim
+
+test-top:
+	iverilog -o ./testbenches/test-top.sim ./testbenches/test_top.v ./testbenches/stub_pll.v ./src/uart_comm.v ./src/uart.v ./src/fpgaminer_top.v ./src/sha256_transform.v ./src/sha256_functions.v ./src/top.v
+	./testbenches/test-top.sim
 
 burn:
 	iceprog $(BUILD)/$(NAME).bin

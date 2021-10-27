@@ -2,20 +2,20 @@ module top (
 	input wire CLK,
 	input wire RX,
 	output wire TX,
-    // output wire D1,
+    output wire D1
     // output wire D2,
     // output wire D3,
     // output wire D4,
     // output wire D5,
 );
 
-    reg [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
-	reg [31:0] nonce_min; // minimum nonce for job
-	reg [31:0] nonce_max; // maximum nonce for job
-	reg [255:0] midstate; // midstate hash, hash of the leftmost 511 bits
-    reg rx_new_work; // Indicate new work on midstate, data.
-    reg new_golden_nonce;
-    reg [31:0] golden_nonce;
+    wire [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
+	wire [31:0] nonce_min; // minimum nonce for job
+	wire [31:0] nonce_max; // maximum nonce for job
+	wire [255:0] midstate; // midstate hash, hash of the leftmost 511 bits
+    wire rx_new_work; // Indicate new work on midstate, data.
+    wire new_golden_nonce;
+    wire [31:0] golden_nonce;
 
     // PLL to get 100.5MHz clock						
 	wire hash_clk;
@@ -32,12 +32,12 @@ module top (
         .golden_nonce(golden_nonce),
 	    .new_golden_nonce(new_golden_nonce), // whether we found a hash
         .nonce_min(nonce_min), // minimum nonce for job
-	    .nonce_max(nonce_max), // maximum nonce for job
+	    .nonce_max(nonce_max) // maximum nonce for job
     );
 
 	uart_comm #(
         .baud_rate(9600),
-        .sys_clk_freq(12000000),
+        .sys_clk_freq(12000000)
     ) comm (
 		.comm_clk (CLK),
         .golden_nonce(golden_nonce),
@@ -54,6 +54,6 @@ module top (
 	    .nonce_min(nonce_min), // minimum nonce for job
 	    .nonce_max(nonce_max), // maximum nonce for job
 	    .midstate(midstate), // midstate hash, hash of the leftmost 511 bits
-	    .new_work(rx_new_work), // Indicate new work on midstate, data.
+	    .new_work(rx_new_work) // Indicate new work on midstate, data.
 	);
 endmodule
