@@ -119,6 +119,7 @@ module uart_comm (
 					end
 				end
 				else if (meta_new_golden_nonce) begin
+					$display("Uart acknowledges the golden nonce!");
 					length <= 8'd1;
 					msg_length <= 8'd8; // 4 header + 4 for nonce
 					msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-31] <= meta_golden_nonce;
@@ -164,6 +165,7 @@ module uart_comm (
 						new_work_flag <= ~new_work_flag;
 
 						msg_type <= MSG_ACK;
+						msg_length <= 8'd1;
 					end
 					else begin
 						$display("Invalid command received!");
@@ -177,6 +179,7 @@ module uart_comm (
         // machine as to not block the receives
         transmit <= 1'b0;  
         if (transmit_packet && !is_transmitting) begin
+			// $display("Trsnsmt len: %2d, msg_len: %2d", length, msg_length);
             transmit <= 1'b1;
             length <= length + 8'd1;
 
@@ -217,9 +220,11 @@ module uart_comm (
 
 
 		meta_golden_nonce_flag <= {new_golden_nonce, meta_golden_nonce_flag[2:1]}; // right shift
-		meta_new_golden_nonce <= meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
+		if (meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]) begin
+			meta_new_golden_nonce <= 1'b1;
+		end
+		// meta_new_golden_nonce <= meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
 
-		// TODO: handle metastability just as with the new work flag
 		if (new_golden_nonce) begin
 			meta_golden_nonce <= golden_nonce;
 		end

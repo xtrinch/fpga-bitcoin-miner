@@ -183,14 +183,7 @@ module uart_comm_tb;
 
 		// ACK for push job
 		$display ("Expecting ACK for push job...");
-		uart_expect_byte (8'd08);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd04);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
+		uart_expect_byte (8'd01);
 		$display ("PASSED: ACK\n");
 
 		$display ("Expecting MSG_NONCE...");

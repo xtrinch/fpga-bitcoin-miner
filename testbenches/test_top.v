@@ -69,7 +69,7 @@ module test_top ();
 		uart_send_byte (8'h02);
         uart_send_word (32'h00000000); // empty 2nd part of header, TODO: remove
 		uart_send_word (32'hFFFFFFFF); // max nonce
-		uart_send_word (32'h1DAC2B00); // min nonce; fast version - 1DAC2B7B
+		uart_send_word (32'h1DAC2B00); // min nonce; fast version - 1DAC2B7B; slow, with response - 1DAC2B00
 		uart_send_word (32'h4B1E5E4A); // 2nd part of header FFFF001D 29AB5F49 4B1E5E4A
 		uart_send_word (32'h29AB5F49); // 2nd part of header
 		uart_send_word (32'hFFFF001D); // 2nd part of header
@@ -84,7 +84,7 @@ module test_top ();
         
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		#30000;
+		#130000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else
@@ -138,14 +138,7 @@ module test_top ();
 
 		// ACK for push job
 		$display ("Expecting ACK for push job...");
-		uart_expect_byte (8'd08);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd04);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
-		uart_recv_byte (tmp);
+        uart_expect_byte (8'h01);
 		$display ("PASSED: ACK\n");
 
 		$display ("Expecting MSG_NONCE...");
@@ -154,19 +147,11 @@ module test_top ();
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd03);
-		uart_expect_byte (8'h38);
-		uart_expect_byte (8'hb9);
-		uart_expect_byte (8'hb0);
-		uart_expect_byte (8'h5a);
+		uart_expect_byte (8'h1d);
+		uart_expect_byte (8'hac);
+		uart_expect_byte (8'h2b);
+		uart_expect_byte (8'h7c);
 		$display ("PASSED: MSG_NONCE\n");
-
-		// Check job
-		if (uut_noncemin != 32'h1FFFFFFF || uut_noncemax != 32'h00000000 || uut_data != 96'h131211100f0e0d0c0b0a0908 || uut_midstate != 256'h333231302f2e2d2c2b2a292827262524232221201f1e1d1c1b1a191817161514)
-		begin
-			$display ("TEST FAILED: Incorrect job:\n");
-			$display ("noncemin: %4X\nnoncemax: %4X\ndata: %24X\nmidstate: %64X\n", uut_noncemin, uut_noncemax, uut_data, uut_midstate);
-			$finish;
-		end
 
 		test_passed = 1;
 	end
