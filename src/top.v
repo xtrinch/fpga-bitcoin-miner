@@ -9,6 +9,10 @@ module top (
     // output wire D5,
 );
 
+    parameter baud_rate = 9600;
+    parameter sys_clk_freq = 12000000;
+    parameter LOOP_LOG2 = 5;
+
     wire [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
 	wire [31:0] nonce_min; // minimum nonce for job
 	wire [31:0] nonce_max; // maximum nonce for job
@@ -23,7 +27,7 @@ module top (
     pll myPLL (.clock_in(CLK), .global_clock(hash_clk), .locked(locked));	
 
     fpgaminer_top #(
-        .LOOP_LOG2(5) // 0-5
+        .LOOP_LOG2(LOOP_LOG2) // 0-5
     ) miner (
         .hash_clk (hash_clk),
         .midstate_vw(midstate),
@@ -36,8 +40,8 @@ module top (
     );
 
 	uart_comm #(
-        .baud_rate(9600),
-        .sys_clk_freq(12000000)
+        .baud_rate(baud_rate),
+        .sys_clk_freq(sys_clk_freq)
     ) comm (
 		.comm_clk (CLK),
         .golden_nonce(golden_nonce),

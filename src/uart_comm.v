@@ -45,7 +45,7 @@ module uart_comm (
 	localparam MSG_ACK = 4;
 
 	// 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
-	localparam JOB_SIZE = 256 + 96 + 32 + 32;
+	localparam JOB_SIZE = 256 + 96 + 32 + 32; // 52 bytes or 416 bits
 
 	reg [JOB_SIZE-1:0] current_job = {JOB_SIZE{1'b0}};
 	reg new_work_flag = 1'b0;
@@ -65,7 +65,7 @@ module uart_comm (
 	// RX Message Buffer
 	reg [63:0] outgoing_msg;
 	reg [7:0] outgoing_msg_type;
-	reg [MSG_BUF_LEN*8-1:0] msg_data;
+	reg [MSG_BUF_LEN*8-1:0] msg_data; // 60 (normally) byte buffer
 	reg [7:0] msg_length; // how long the received message is
     reg [7:0] length; // where in the message are we
     reg [7:0] msg_type; // the type of received message
@@ -95,21 +95,6 @@ module uart_comm (
 		.is_transmitting(is_transmitting),// Low when transmit line is idle
 		.recv_error(recv_error)           // Indicates error in receiving packet.
 	);
-
-	// uart_rx uart_rx_blk (
-	// 	.clk (comm_clk),
-	// 	.rx_serial (rx_serial),
-	// 	.received (received),
-	// 	.rx_byte (rx_byte)
-	// );
-
-	// uart_tx uart_tx_blk (
-	// 	.clk (comm_clk),
-	// 	.tx_serial (tx_serial),
-	// 	.transmit (transmit),
-	// 	.tx_byte (tx_byte),
-	// 	.is_transmitting (is_transmitting)
-	// );
 
 	always @(posedge comm_clk) begin
         case (state)
@@ -175,7 +160,7 @@ module uart_comm (
 					else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
 					begin
 						$display("Push job command received!");
-						current_job <= msg_data[MSG_BUF_LEN*8-32-1:MSG_BUF_LEN*8-32-JOB_SIZE]; // header is in the beginning, so the job is on the left
+						current_job <= msg_data[8*8 +: JOB_SIZE]; // header is in the beginning, so the job is on the left
 						new_work_flag <= ~new_work_flag;
 
 						msg_type <= MSG_ACK;

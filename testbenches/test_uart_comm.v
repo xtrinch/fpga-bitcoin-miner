@@ -2,6 +2,8 @@
 
 // Works with Icarus Verilog
 module uart_comm_tb;
+	`define SIM 1
+
 	// Clocks
 	reg comm_clk = 0;
 	reg hash_clk = 0;
@@ -70,11 +72,12 @@ module uart_comm_tb;
 		uart_send_byte (8'h6);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// PUSH_JOB
+		// PUSH_JOB: header, 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
 		uart_send_byte (8'd60);
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h02);
+		uart_send_word (32'h00000000); // 2nd empty part of header, TODO: remove
 		uart_send_word (32'h00000000);
 		uart_send_word (32'h1FFFFFFF);
 		uart_send_word (32'h0b0a0908);
@@ -88,7 +91,6 @@ module uart_comm_tb;
 		uart_send_word (32'h2b2a2928);
 		uart_send_word (32'h2f2e2d2c);
 		uart_send_word (32'h33323130);
-		uart_send_word (32'h98c3a458);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// // Bad CRC

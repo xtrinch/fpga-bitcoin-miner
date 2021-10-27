@@ -22,4 +22,4 @@ Both should return either pong or the info you can find harcoded in the `uart_co
 - Difficulty should not be hardcoded. It is also incorrect to check for the leading number of zeroes in a hash, when the blocks are byte reversed in blocks of 4 bytes.
 - Finalize tests for UART, write tests for the topmost module.
 - CRC for the UART module
-- All UART packets to 4 byte headers
+- All UART packets to 4 byte headers, 4 bytes on the end are for the CRC!

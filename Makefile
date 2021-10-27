@@ -34,7 +34,7 @@ test-uart:
 	./testbenches/test-uart.sim
 
 test-top:
-	iverilog -o ./testbenches/test-top.sim ./testbenches/test_top.v ./testbenches/stub_pll.v ./src/uart_comm.v ./src/uart.v ./src/fpgaminer_top.v ./src/sha256_transform.v ./src/sha256_functions.v ./src/top.v
+	iverilog -o ./testbenches/test-top.sim ./testbenches/test_top.v ./testbenches/mock_pll.v ./src/uart_comm.v ./src/uart.v ./src/fpgaminer_top.v ./src/sha256_transform.v ./src/sha256_functions.v ./src/top.v
 	./testbenches/test-top.sim
 
 burn:

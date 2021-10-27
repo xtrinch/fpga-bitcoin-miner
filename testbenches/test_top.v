@@ -5,21 +5,17 @@
 // has sent the correct golden nonce back via uart
 
 // the example to be mined is the genesis block (see genesis_block.txt)
-module test_fpgaminer_top ();
+module test_top ();
+	`define SIM 1
+
 	// Clocks
 	reg comm_clk = 0;
-	reg hash_clk = 0;
 	initial while(1) #5 comm_clk = ~comm_clk;
-	initial while(1) #1 hash_clk = ~hash_clk;
 
 	reg test_passed = 0;
 
 	// UUT
 	reg uut_rx = 1'b1;
-	reg uut_need_work = 1'b0;
-	reg uut_new_nonce = 1'b0;
-	reg [31:0] uut_golden_nonce = 32'd0;
-
 	wire uut_tx;
 	wire uut_new_work;
 	wire [255:0] uut_midstate;
@@ -29,7 +25,11 @@ module test_fpgaminer_top ();
 	localparam baud_rate = 1;
 	localparam sys_clk_freq = 16; // 160/10
 
-    top miner (
+    top #(
+		.baud_rate(baud_rate),
+		.sys_clk_freq(sys_clk_freq),
+        .LOOP_LOG2(0)
+	) miner (
         .CLK(comm_clk),
         .RX(uut_rx),
         .TX(uut_tx)
@@ -61,30 +61,28 @@ module test_fpgaminer_top ();
 		uart_send_byte (8'h6);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
-		// PUSH_JOB
-		uart_send_byte (8'd60);
+		// PUSH_JOB: header, 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
+        // pushed in reverse order
+		uart_send_byte (8'h3C); // decimal 60
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h02);
-		uart_send_word (32'h00000000);
-		uart_send_word (32'h1FFFFFFF);
-		uart_send_word (32'h0b0a0908);
-		uart_send_word (32'h0f0e0d0c);
-		uart_send_word (32'h13121110);
-		uart_send_word (32'h17161514);
-		uart_send_word (32'h1b1a1918);
-		uart_send_word (32'h1f1e1d1c);
-		uart_send_word (32'h23222120);
-		uart_send_word (32'h27262524);
-		uart_send_word (32'h2b2a2928);
-		uart_send_word (32'h2f2e2d2c);
-		uart_send_word (32'h33323130);
-		uart_send_word (32'h98c3a458);
+        uart_send_word (32'h00000000); // empty 2nd part of header, TODO: remove
+		uart_send_word (32'hFFFFFFFF); // max nonce
+		uart_send_word (32'h1DAC2B00); // min nonce; fast version - 1DAC2B7B
+		uart_send_word (32'h4B1E5E4A); // 2nd part of header FFFF001D 29AB5F49 4B1E5E4A
+		uart_send_word (32'h29AB5F49); // 2nd part of header
+		uart_send_word (32'hFFFF001D); // 2nd part of header
+		uart_send_word (32'hBC909A33); // midstate hash 4719F91B 96B18736 4F0103C8 C3C8D8E9 1E59CAA8 90CCAC7D 6358BFF0 BC909A33
+		uart_send_word (32'h6358BFF0); // midstate hash
+		uart_send_word (32'h90CCAC7D); // midstate hash
+		uart_send_word (32'h1E59CAA8); // midstate hash 
+		uart_send_word (32'hC3C8D8E9); // midstate hash
+		uart_send_word (32'h4F0103C8); // midstate hash
+		uart_send_word (32'h96B18736); // midstate hash
+		uart_send_word (32'h4719F91B); // midstate hash
+        
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
-
-		// signal to the uart module that a valid hash has been found
-		uut_golden_nonce <= 32'h38b9b05a;
-		uut_new_nonce <= 1;
 
 		#30000;
 		if (test_passed)
