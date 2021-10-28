@@ -119,7 +119,6 @@ module uart_comm (
 					end
 				end
 				else if (meta_new_golden_nonce) begin
-					$display("Uart acknowledges the golden nonce!");
 					length <= 8'd1;
 					msg_length <= 8'd8; // 4 header + 4 for nonce
 					msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-31] <= meta_golden_nonce;
@@ -153,14 +152,12 @@ module uart_comm (
 					transmit_packet <= 1;
 
 					if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
-						$display("Info command received!");
 						msg_type <= MSG_INFO;
 						msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-63] <= system_info;
 						msg_length <= 8'd16;
 					end
 					else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
 					begin
-						$display("Push job command received!");
 						current_job <= msg_data[8*8 +: JOB_SIZE]; // header is in the beginning, so the job is on the left
 						new_work_flag <= ~new_work_flag;
 
@@ -168,7 +165,9 @@ module uart_comm (
 						msg_length <= 8'd1;
 					end
 					else begin
+						`ifdef SIM
 						$display("Invalid command received!");
+						`endif
 						msg_type <= MSG_INVALID;
 					end
 				end
@@ -179,7 +178,6 @@ module uart_comm (
         // machine as to not block the receives
         transmit <= 1'b0;  
         if (transmit_packet && !is_transmitting) begin
-			// $display("Trsnsmt len: %2d, msg_len: %2d", length, msg_length);
             transmit <= 1'b1;
             length <= length + 8'd1;
 
@@ -191,7 +189,6 @@ module uart_comm (
                 tx_byte <= msg_type;
             else if (length <= msg_length)
             begin
-				// $display("transmit byte comm: %8d, msgtype: %2d, lenght: %3d", msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)], msg_type, msg_length);
                 tx_byte <= msg_data[((MSG_BUF_LEN*8)-1):((MSG_BUF_LEN-1)*8)]; 
 				msg_data <= msg_data << 8;
             end
@@ -211,8 +208,7 @@ module uart_comm (
 	reg meta_new_golden_nonce;
 	reg [31:0] meta_golden_nonce;
 
-	always @ (posedge hash_clk)
-	begin
+	always @ (posedge hash_clk) begin
 		meta_job <= current_job;
 		meta_new_work_flag <= {new_work_flag, meta_new_work_flag[2:1]}; // right shift
 		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes

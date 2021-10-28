@@ -69,7 +69,7 @@ module test_top ();
 		uart_send_byte (8'h02);
         uart_send_word (32'h00000000); // empty 2nd part of header, TODO: remove
 		uart_send_word (32'hFFFFFFFF); // max nonce
-		uart_send_word (32'h1DAC2B00); // min nonce; fast version - 1DAC2B7B; slow, with response - 1DAC2B00
+		uart_send_word (32'h1DAC2B7B); // min nonce; fast version - 1DAC2B7B; slow, with response - 1DAC2B00
 		uart_send_word (32'h4B1E5E4A); // 2nd part of header FFFF001D 29AB5F49 4B1E5E4A
 		uart_send_word (32'h29AB5F49); // 2nd part of header
 		uart_send_word (32'hFFFF001D); // 2nd part of header

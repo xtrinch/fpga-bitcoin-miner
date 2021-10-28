@@ -15,12 +15,12 @@
 module sha256_transform #(
 	parameter LOOP = 6'd4
 ) (
-	input clk,
-	input feedback, // On the first count (cnt==0), load data from previous stage (feedback=0),
-					// on 1..LOOP-1, take feedback from current stage (feedback=1)
-	input [5:0] cnt, // where in the LOOP are we
-	input [255:0] rx_state, // initial compression state
-	input [511:0] rx_input, // data we'd like to hash
+	input wire clk,
+	input wire feedback, // On the first count (cnt==0), load data from previous stage (feedback=0),
+						 // on 1..LOOP-1, take feedback from current stage (feedback=1)
+	input wire [5:0] cnt, // where in the LOOP are we
+	input wire [255:0] rx_state, // initial compression state
+	input wire [511:0] rx_input, // data we'd like to hash
 	output reg [255:0] tx_hash // 255 bit hash output
 );
 	// 64 Constants defined by the SHA-2 standard. - sqrt3(primes)
@@ -49,31 +49,24 @@ module sha256_transform #(
 			wire [511:0] W; // message schedule word
 			wire [255:0] state; // compression state
 
-			if(i == 0)
-				sha256_digester U (
-					.clk(clk), // clock
-					.k(Ks[32*(63-cnt) +: 32]), // constant
-					.rx_w(feedback ? W : rx_input), // if feedback use the current message schedule word, otherwise take a new one
-					.rx_state(feedback ? state : rx_state), // input state, if feedback we use the state we just calculated and do not advance the pipeline
-					.tx_w(W),
-					.tx_state(state) // output state
-				);
-			else
-				sha256_digester U (
-					.clk(clk), // clock
-					.k(Ks[32*(63-LOOP*i-cnt) +: 32]), // constant
-					.rx_w(feedback ? W : HASHERS[i-1].W),
-					.rx_state(feedback ? state : HASHERS[i-1].state), // input state
-					.tx_w(W),
-					.tx_state(state) // output state
-				);
+			// when feeding back, take current state, because we will use the
+			// same round components multiple times;
+			// when not feeding back, advance the pipeline by taking the previous
+			// round's values
+			sha256_digester U (
+				.clk(clk), // clock
+				.k(Ks[32*(63-LOOP*i-cnt) +: 32]), // constant
+				.rx_w(feedback ? W : (i > 0 ? HASHERS[i-1].W : rx_input)),
+				.rx_state(feedback ? state : (i > 0 ? HASHERS[i-1].state : rx_state)), // input state
+				.tx_w(W),
+				.tx_state(state) // output state
+			);
 		end
 	endgenerate
-
+	
 	// output the computed hash, it will be in the last state of the pipeline, 
 	// add in the initial receiving state as per sha256
-	always @ (posedge clk)
-	begin
+	always @ (posedge clk) begin
 		if (!feedback) // cnt == 0
 		begin
 			tx_hash[`IDX(0)] <= rx_state[`IDX(0)] + HASHERS[64/LOOP-6'd1].state[`IDX(0)];
@@ -115,8 +108,7 @@ module sha256_digester (
 	wire [31:0] t1 = rx_state[`IDX(7)] + e1_w + ch_w + rx_w[31:0] + k; // T1 for the compression
 	wire [31:0] t2 = e0_w + maj_w; // T2 for the compression
 
-	always @ (posedge clk)
-	begin
+	always @ (posedge clk) begin
 		tx_w[511:480] <= new_w; // slide in from the left the new word of the message schedule 
 		tx_w[479:0] <= rx_w[511:32]; // right shift by 1 word (32 bits)
 

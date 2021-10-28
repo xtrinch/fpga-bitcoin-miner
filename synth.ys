@@ -1,0 +1,58 @@
+read_verilog -lib +/ice40/cells_sim.v src/*.v
+hierarchy -check -top top
+proc
+
+flatten
+tribuf -logic
+deminout
+
+opt_expr
+opt_clean
+check
+opt
+wreduce
+peepopt
+opt_clean
+share
+techmap -map +/cmp2lut.v -D LUT_WIDTH=4
+opt_expr
+opt_clean
+alumacc
+opt
+fsm
+opt -fast
+memory -nomap
+opt_clean
+
+memory_bram -rules +/ice40/brams.txt
+techmap -map +/ice40/brams_map.v
+ice40_braminit
+
+opt -fast -mux_undef -undriven -fine
+memory_map
+opt -undriven -fine
+
+techmap -map +/techmap.v -map +/ice40/arith_map.v
+ice40_opt
+
+dffsr2dff
+dff2dffe -direct-match $_DFF_*
+techmap -D NO_LUT -map +/ice40/cells_map.v
+opt_expr -mux_undef
+simplemap
+ice40_ffinit
+ice40_ffssr
+ice40_opt -full
+
+techmap -map +/ice40/latches_map.v
+abc -dress -lut 4
+clean
+
+techmap -map +/ice40/cells_map.v
+clean
+
+hierarchy -check
+stat
+check -noinit
+
+write_json build/miner.json

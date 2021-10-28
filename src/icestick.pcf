@@ -18,13 +18,13 @@
 
 
 # ------------ Red leds ------------------------------------------------------
-set_io --warn-no-port D1 99
-set_io --warn-no-port D2 98
-set_io --warn-no-port D3 97
-set_io --warn-no-port D4 96
+#set_io --warn-no-port D1 99
+#set_io --warn-no-port D2 98
+#set_io --warn-no-port D3 97
+#set_io --warn-no-port D4 96
 
 # ------------ Green led -----------------------------------------------------
-set_io --warn-no-port D5 95
+#set_io --warn-no-port D5 95
 
 # ------------ IrDA ----------------------------------------------------------
 #set_io --warn-no-port IrDA_TX 105

@@ -175,7 +175,9 @@
                         rx_samples <= 0;
                         rx_sample_countdown <= 5;
                     end else begin
+                        `ifdef SIM
                         $display("Pulse lasted less than half the period! %1d", rx);
+                		`endif
 
                         // Pulse lasted less than half the period -
                         // not a valid transmission.
@@ -198,7 +200,6 @@
             
             RX_READ_BITS: begin
                 if (!rx_clk) begin
-                    // $display("Rd:%1d", rx_samples > 3);
                     // Should be finished sampling the pulse here.
                     // Update and prep for next
                     if (rx_samples > 3) begin
@@ -231,7 +232,9 @@
             end
             
             RX_ERROR: begin
+                `ifdef SIM
                 $display("Error receiving", rx);
+                `endif
 
                 // There was an error receiving.
                 // Raises the recv_error flag for one clock
@@ -252,8 +255,9 @@
             
             
             RX_RECEIVED: begin
+                `ifdef SIM
                 $display("Received full byte %8h", rx_data);
-
+                `endif
                 // Successfully received a byte.
                 // Raises the received flag for one clock
                 // cycle while in this state.
@@ -261,14 +265,6 @@
             end
             
         endcase
-        
-        // if (tx_state) begin
-        //     $display("TX:%1d, %3d", tx, tx_bits_remaining);
-        // end
-
-        // if (recv_state) begin
-        //     $display("RX:%1d, %3d", rx, rx_bits_remaining);
-        // end
         
 //** Transmit state machine ***********************************
 
@@ -287,12 +283,13 @@
                     tx_bits_remaining <= 8;
                     tx_state <= TX_SENDING;
 
+					`ifdef SIM
                     $display("Going to send full byte %8h", tx_byte);
+                    `endif
                 end
             end
             
             TX_SENDING: begin
-                // $display("SndTx:%1d, clk %8d",tx_out, tx_clk);
                 if (!tx_clk) begin
                     if (tx_bits_remaining) begin
                         tx_bits_remaining <= tx_bits_remaining - 1'd1;
@@ -306,8 +303,6 @@
                         tx_out <= 1;
                         tx_clk <= 16 * one_baud_cnt - 1;// tx_countdown = 16;
                         tx_state <= TX_DELAY_RESTART;
-
-                        // $display("Going to restart and setting tx_clk to %8d", 16 * one_baud_cnt - 1);
                     end
                 end
             end

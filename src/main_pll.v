@@ -16,12 +16,11 @@
 module pll(								
 	input  clock_in,						
 	output global_clock,						
-	output locked							
-	);								
+	output locked // will go high when PLL is locked - has a stable voltage						
+);								
 									
-   wire        g_clock_int;						
-   									
-   									
+   wire g_clock_int;						
+   															
    SB_PLL40_CORE #(							
 		.FEEDBACK_PATH("SIMPLE"),				
 		.DIVR(4'b0000),		// DIVR =  0			
@@ -29,14 +28,16 @@ module pll(
 		.DIVQ(3'b011),		// DIVQ =  3			
 		.FILTER_RANGE(3'b001)	// FILTER_RANGE = 1		
 	) uut (								
-		.LOCK(locked),						
-		.RESETB(1'b1),						
+		.LOCK(locked),
+		.RESETB(1'b1),
 		.BYPASS(1'b0),						
 		.REFERENCECLK(clock_in),				
 	        .PLLOUTGLOBAL(g_clock_int)				
-		);							
+	);							
 									
-   SB_GB sbGlobalBuffer_inst( .USER_SIGNAL_TO_GLOBAL_BUFFER(g_clock_int)
-			   , .GLOBAL_BUFFER_OUTPUT(global_clock) );	
+   SB_GB sbGlobalBuffer_inst( 
+	   .USER_SIGNAL_TO_GLOBAL_BUFFER(g_clock_int), 
+	   .GLOBAL_BUFFER_OUTPUT(global_clock) 
+	);	
 
 endmodule	

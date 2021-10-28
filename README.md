@@ -16,6 +16,10 @@ Both should return either pong or the info you can find harcoded in the `uart_co
   - Pong: `0x01`
   - Get info response: `0x10 00 00 00 de ad be ef 13 37 0d 13 00 00 00 00`
 
+## Manual yosys inspection
+- `read -vlog2k src/*.v`
+- `proc;`
+
 ## Todos
 
 - Block headers are currently byte reversed in blocks of 4 bytes for the miner to work correctly. I suspect this is due to the pool's way of calculating midstate. We should be able to circumvent this when calculating our own midstate hashes with minor modifications of the mining code.

@@ -1,17 +1,13 @@
 module top (
 	input wire CLK,
 	input wire RX,
-	output wire TX,
-    output wire D1
-    // output wire D2,
-    // output wire D3,
-    // output wire D4,
-    // output wire D5,
+	output wire TX
 );
 
     parameter baud_rate = 9600;
     parameter sys_clk_freq = 12000000;
     parameter LOOP_LOG2 = 5;
+
 
     wire [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
 	wire [31:0] nonce_min; // minimum nonce for job
@@ -30,7 +26,7 @@ module top (
         .LOOP_LOG2(LOOP_LOG2) // 0-5
     ) miner (
         .hash_clk (hash_clk),
-        .midstate_vw(midstate),
+        .midstate(midstate),
 	    .work_data(work_data),
         .reset(rx_new_work),
         .golden_nonce(golden_nonce),
@@ -49,11 +45,6 @@ module top (
         .hash_clk (hash_clk),
 		.rx_serial (RX),
 		.tx_serial (TX),
-        // .error_led (D5),
-        // .status_led1 (D1),
-        // .status_led2 (D2),
-        // .status_led3 (D3),
-        // .status_led4 (D4),
         .work_data(work_data), // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)
 	    .nonce_min(nonce_min), // minimum nonce for job
 	    .nonce_max(nonce_max), // maximum nonce for job

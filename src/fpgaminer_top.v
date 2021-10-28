@@ -2,13 +2,13 @@
 
 module fpgaminer_top (
     input wire hash_clk,
-	input wire [255:0] midstate_vw,
+	input wire [255:0] midstate,
 	input wire [95:0] work_data,
 	input wire [31:0] nonce_min, // minimum nonce for job
 	input wire [31:0] nonce_max, // maximum nonce for job
 	input wire reset,
-	output reg [31:0] golden_nonce = 0,
-	output reg new_golden_nonce = 1'b0 // whether we found a hash
+	output reg [31:0] golden_nonce,
+	output reg new_golden_nonce // whether we found a hash
 );
 	// determines how unrolled the SHA-256 calculations are. 
     // a setting of 0 will completely unroll the calculations, 
@@ -29,25 +29,28 @@ module fpgaminer_top (
 	localparam [31:0] GOLDEN_NONCE_OFFSET = (32'd1 << (7 - LOOP_LOG2)) + 32'd1;
 
 	reg [511:0] data = 0; // a block header is 640 bits
-    reg [31:0] nonce = 32'h00000000;
+    reg [31:0] nonce;
 
 	wire [255:0] hash; // hash of the 2nd 511 bits of the block header
     wire [255:0] hash2; // hash of the first round of block header hash
-	reg [5:0] cnt = 6'd0; // where in the LOOP are we
-	reg feedback = 1'b0; // whether we're inside the same hash or a new one
+	reg [5:0] cnt; // where in the LOOP are we
+	reg feedback; // whether we're inside the same hash or a new one
 	reg wait_for_work = 1'b1;
 
 	// the hash of the first 511 bits where the header version n' stuff is
     // it is precomputed at the PC and sent to the miner 
-	reg [255:0] midstate_buf = 0;
+	reg [255:0] midstate_buf;
     // the leftmost data of the right 511 bits of the header (a piece of the merkle root, time, target) 
-    reg [95:0] data_buf = 0;
+    reg [95:0] data_buf;
+
+	wire sha_clk;
+	assign sha_clk = wait_for_work ? 1'b0 : hash_clk;
 
     // sha256 stores binary in big endian (lowest address -> most significant value)
     // hash = hashlib.sha256(hashlib.sha256(header_bin).digest()).digest()
     // 1st hash round - rightmost 511 bits of the block header
 	sha256_transform #(.LOOP(LOOP)) uut (
-		.clk(wait_for_work ? 1'b0 : hash_clk),
+		.clk(sha_clk),
 		.feedback(feedback),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(midstate_buf),
@@ -56,7 +59,7 @@ module fpgaminer_top (
 	);
     // 2nd hash round - hashing the hash of the first round
 	sha256_transform #(.LOOP(LOOP)) uut2 (
-		.clk(wait_for_work ? 1'b0 : hash_clk),
+		.clk(sha_clk),
 		.feedback(feedback),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(256'h5be0cd191f83d9ab9b05688c510e527fa54ff53a3c6ef372bb67ae856a09e667), // initial hash values h7 downto h1
@@ -65,8 +68,8 @@ module fpgaminer_top (
 	);
 
 	//// Control Unit
-	reg feedback_d1 = 1'b1; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
-	reg golden_nonce_found = 1'b0; // output is delayed for 1 cycle behind internal value
+	reg feedback_d1; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
+	reg golden_nonce_found; // output is delayed for 1 cycle behind internal value
 	wire [5:0] cnt_next;
 	wire [31:0] nonce_next;
 	wire feedback_next;
@@ -85,11 +88,16 @@ module fpgaminer_top (
 	
 	always @ (posedge hash_clk)
 	begin
-		if (reset)
+		if (reset) begin
 			wait_for_work <= 1'b0;
+			cnt <= 1'b0;
+			feedback <= 1'b0;
+			golden_nonce_found <= 1'b0;
+			feedback_d1 <= 1'b0;
+		end
 
         // Give new data to the hasher, feed it the hash of the first 511 bits of the block header
-        midstate_buf <= midstate_vw;
+        midstate_buf <= midstate;
         data_buf <= work_data;
 		
 		cnt <= cnt_next;
@@ -111,15 +119,21 @@ module fpgaminer_top (
 			case (LOOP)
 				1: begin 
 					golden_nonce <= nonce - 32'd131;
+					`ifdef SIM
 					$display ("golden nonce found: %8x\n", nonce - 32'd131);
+					`endif
 				end
 				2: begin 
 					golden_nonce <= nonce - 32'd66;
+					`ifdef SIM
 					$display ("golden nonce found: %8x\n", nonce - 32'd66);
+					`endif
 				end
 				default: begin
 					golden_nonce <= nonce - GOLDEN_NONCE_OFFSET;
+					`ifdef SIM
 					$display ("golden nonce found: %8x\n", nonce - GOLDEN_NONCE_OFFSET);
+					`endif
 				end
 			endcase;
 		end

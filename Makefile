@@ -18,6 +18,7 @@ all:
 	
 	# synthesize using Yosys
 	yosys -p "synth_ice40 -top top -json $(BUILD)/$(NAME).json" $(FILES) -v 5 -l $(BUILD)/$(NAME)-yosys.log
+	# yosys -p "synth_ecp5 -top top -json $(BUILD)/$(NAME).json" $(FILES) -v 5 -l $(BUILD)/$(NAME)-yosys.log
 
 	# Place and route using nextpnr
 	nextpnr-ice40 --quiet --hx8k --package tq144:4k --json $(BUILD)/$(NAME).json --pcf src/icestick.pcf --asc $(BUILD)/$(NAME).asc --log $(BUILD)/$(NAME)-nextpnr.log
