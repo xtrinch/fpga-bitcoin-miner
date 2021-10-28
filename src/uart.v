@@ -47,7 +47,7 @@
 //    );
 //
 
- module uart(
+module uart(
     input clk,                  // The master clock for this module
     input rst,                  // Synchronous reset
     input rx,                   // Incoming serial line

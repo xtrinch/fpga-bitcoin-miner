@@ -17,11 +17,12 @@ all:
 	mkdir -p $(BUILD)
 	
 	# synthesize using Yosys
-	yosys -p "synth_ice40 -top top -json $(BUILD)/$(NAME).json" $(FILES) -v 5 -l $(BUILD)/$(NAME)-yosys.log
+	yosys -p "synth_ice40 -noflatten -top top -json $(BUILD)/$(NAME).json" $(FILES) -v 5 -l $(BUILD)/$(NAME)-yosys.log
+	# yosys synth.ys -v 5 -l $(BUILD)/$(NAME)-yosys.log
 	# yosys -p "synth_ecp5 -top top -json $(BUILD)/$(NAME).json" $(FILES) -v 5 -l $(BUILD)/$(NAME)-yosys.log
 
 	# Place and route using nextpnr
-	nextpnr-ice40 --quiet --hx8k --package tq144:4k --json $(BUILD)/$(NAME).json --pcf src/icestick.pcf --asc $(BUILD)/$(NAME).asc --log $(BUILD)/$(NAME)-nextpnr.log
+	nextpnr-ice40 --top top --quiet --hx8k --package tq144:4k --json $(BUILD)/$(NAME).json --pcf src/icestick.pcf --asc $(BUILD)/$(NAME).asc --log $(BUILD)/$(NAME)-nextpnr.log
 
 	# Convert to bitstream using IcePack
 	icepack $(BUILD)/$(NAME).asc $(BUILD)/$(NAME).bin

@@ -27,3 +27,51 @@ Both should return either pong or the info you can find harcoded in the `uart_co
 - Finalize tests for UART, write tests for the topmost module.
 - CRC for the UART module
 - All UART packets to 4 byte headers, 4 bytes on the end are for the CRC!
+
+## Utilization
+
+From optimization level 5 to 0:
+
+Info: 	         ICESTORM_LC: 11877/ 7680   154%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+
+Info: 	         ICESTORM_LC: 19737/ 7680   256%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+
+Info: 	         ICESTORM_LC: 35743/ 7680   465%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+
+Info: 	         ICESTORM_LC: 68064/ 7680   886%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+
+Info: Device utilisation:
+Info: 	         ICESTORM_LC: 132953/ 7680  1731%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+
+Info: Device utilisation:
+Info: 	         ICESTORM_LC: 261901/ 7680  3410%
+Info: 	        ICESTORM_RAM:     0/   32     0%
+Info: 	               SB_IO:     3/  256     1%
+Info: 	               SB_GB:     8/    8   100%
+Info: 	        ICESTORM_PLL:     1/    2    50%
+Info: 	         SB_WARMBOOT:     0/    1     0%

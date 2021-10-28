@@ -33,8 +33,10 @@ module fpgaminer_top (
 
 	wire [255:0] hash; // hash of the 2nd 511 bits of the block header
     wire [255:0] hash2; // hash of the first round of block header hash
+	// count and feedback are controlled by this unit so we don't have to
+	// calculate it twice for each hasher
 	reg [5:0] cnt; // where in the LOOP are we
-	reg feedback; // whether we're inside the same hash or a new one
+	wire feedback; // whether we're inside the same hash or a new one
 	reg wait_for_work = 1'b1;
 
 	// the hash of the first 511 bits where the header version n' stuff is
@@ -50,8 +52,8 @@ module fpgaminer_top (
     // hash = hashlib.sha256(hashlib.sha256(header_bin).digest()).digest()
     // 1st hash round - rightmost 511 bits of the block header
 	sha256_transform #(.LOOP(LOOP)) uut (
-		.clk(sha_clk),
 		.feedback(feedback),
+		.clk(sha_clk),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(midstate_buf),
 		.rx_input(data), // data we'd like to hash
@@ -59,8 +61,8 @@ module fpgaminer_top (
 	);
     // 2nd hash round - hashing the hash of the first round
 	sha256_transform #(.LOOP(LOOP)) uut2 (
-		.clk(sha_clk),
 		.feedback(feedback),
+		.clk(sha_clk),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(256'h5be0cd191f83d9ab9b05688c510e527fa54ff53a3c6ef372bb67ae856a09e667), // initial hash values h7 downto h1
 		.rx_input({256'h0000010000000000000000000000000000000000000000000000000080000000, hash}), // 256bits of padding (length on the left and 1 padded on the right) + previous hash
@@ -81,7 +83,8 @@ module fpgaminer_top (
 	// on 1..LOOP-1, take feedback from current stage
 	// This reduces the throughput by a factor of (LOOP), but also reduces the design size by the same amount
     // {(LOOP_LOG2){1'b0}} === 0 replicated LOOP_LOG2 times
-	assign feedback_next = (LOOP == 1) ? 1'b0 : (cnt_next != {(LOOP_LOG2){1'b0}});
+	assign feedback_next = cnt_next != 0;
+	assign feedback = cnt != 0;
 
     // if we're inside the feedback loop, do not increment the nonce
 	assign nonce_next = reset ? nonce_min : feedback_next ? nonce : (nonce + 32'd1);
@@ -91,7 +94,6 @@ module fpgaminer_top (
 		if (reset) begin
 			wait_for_work <= 1'b0;
 			cnt <= 1'b0;
-			feedback <= 1'b0;
 			golden_nonce_found <= 1'b0;
 			feedback_d1 <= 1'b0;
 		end
@@ -99,10 +101,9 @@ module fpgaminer_top (
         // Give new data to the hasher, feed it the hash of the first 511 bits of the block header
         midstate_buf <= midstate;
         data_buf <= work_data;
-		
-		cnt <= cnt_next;
-		feedback <= feedback_next;
+
 		feedback_d1 <= feedback;
+		cnt <= cnt_next;
 		new_golden_nonce <= golden_nonce_found; // output is delayed by one cycle to make sure the nonce is written into golden_nonce
 
         // { padding length=384 bits, nonce, data=12 bytes }

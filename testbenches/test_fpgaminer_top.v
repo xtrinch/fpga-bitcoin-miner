@@ -15,7 +15,7 @@ module test_fpgaminer_top ();
 	// setup as it is in test_data.txt
 	// fpgaminer_top # (.LOOP_LOG2(0)) uut (
     //     .hash_clk(clk),
-    //     .midstate(256'h228ea4732a3c9ba860c009cda7252b9161a5e75ec8c582a5f106abb3af41f790),
+    //     .midstate_vw(256'h228ea4732a3c9ba860c009cda7252b9161a5e75ec8c582a5f106abb3af41f790),
     //     .work_data(96'h2194261a9395e64dbed17115),
     //     .nonce_min(32'h0e33337a - 2), // Minus a little so we can exercise the code a bit
     //     .reset(reset)

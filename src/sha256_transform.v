@@ -15,9 +15,9 @@
 module sha256_transform #(
 	parameter LOOP = 6'd4
 ) (
+	input wire feedback, 	// On the first count (cnt==0), load data from previous stage (feedback=0),
+	// on 1..LOOP-1, take feedback from current stage (feedback=1)
 	input wire clk,
-	input wire feedback, // On the first count (cnt==0), load data from previous stage (feedback=0),
-						 // on 1..LOOP-1, take feedback from current stage (feedback=1)
 	input wire [5:0] cnt, // where in the LOOP are we
 	input wire [255:0] rx_state, // initial compression state
 	input wire [511:0] rx_input, // data we'd like to hash
