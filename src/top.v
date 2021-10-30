@@ -6,7 +6,7 @@ module top (
 
     parameter baud_rate = 9600;
     parameter sys_clk_freq = 12000000;
-    parameter LOOP_LOG2 = 6;
+    parameter LOOP_LOG2 = 5;
 
 
     wire [95:0] work_data; // 12 bytes of the rightmost 511 bits of the header (time, merkleroot, difficulty)

@@ -1,9 +1,11 @@
+// Algorithm      	Check      	Poly       	Init   		RefIn 	RefOut 	XorOut  
+// CRC-32/MPEG-2	0x0376E6E7	0x04C11DB7	0xFFFFFFFF	false	false	0x00000000
 
 // Calculates a CRC32 (Ethernet, polynomial 0x04C11DB7).
 module CRC32 (
 	input clk,
 	input reset,
-	input rx_we,
+	input received,
 	input [7:0] rx_byte,
 	output reg [31:0] tx_crc = 32'd0
 );
@@ -11,7 +13,7 @@ module CRC32 (
 	localparam [31:0] poly = 32'b0000_0100_1100_0001_0001_1101_1011_0111;
 
 	wire [31:0] crc = reset ? 32'd0 : tx_crc;
-	wire [7:0] byte = rx_we ? rx_byte : 8'd0;
+	wire [7:0] byte = received ? rx_byte : 8'd0;
 
 	wire [31:0] shifted0 = {crc[30:0], byte[7]} ^ ({32{crc[31]}} & poly);
 	wire [31:0] shifted1 = {shifted0[30:0], byte[6]} ^ ({32{shifted0[31]}} & poly);
@@ -24,7 +26,7 @@ module CRC32 (
 
 	always @ (posedge clk)
 	begin
-		if (rx_we | reset)
+		if (received | reset)
 			tx_crc <= shifted7;
 	end
 

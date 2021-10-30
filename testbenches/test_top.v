@@ -50,24 +50,21 @@ module test_top ();
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00); // message type
-		uart_send_byte (8'hf9);
-		uart_send_byte (8'hea);
-		uart_send_byte (8'h98);
-		uart_send_byte (8'h0a);
+		uart_send_byte (8'hf9); // crc
+		uart_send_byte (8'hea); // crc
+		uart_send_byte (8'h98); // crc
+		uart_send_byte (8'h0a); // crc
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// Bad length
 		uart_send_byte (8'h6);
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// PUSH_JOB: header, 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
         // pushed in reverse order
-		uart_send_byte (8'h3C); // decimal 60
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h00);
-		uart_send_byte (8'h02);
-        uart_send_word (32'h00000000); // empty 2nd part of header, TODO: remove
+		uart_send_word (32'h0200003C); // byte reversed, ofc, length 60
 		uart_send_word (32'hFFFFFFFF); // max nonce
 		uart_send_word (32'h1DAC2B7B); // min nonce; fast version - 1DAC2B7B; slow, with response - 1DAC2B00
 		uart_send_word (32'h4B1E5E4A); // 2nd part of header FFFF001D 29AB5F49 4B1E5E4A
@@ -81,7 +78,8 @@ module test_top ();
 		uart_send_word (32'h4F0103C8); // midstate hash
 		uart_send_word (32'h96B18736); // midstate hash
 		uart_send_word (32'h4719F91B); // midstate hash
-        
+        uart_send_word (32'h814f1577); // crc 77154f81 
+
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		#130000;

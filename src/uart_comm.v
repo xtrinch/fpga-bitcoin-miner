@@ -43,6 +43,7 @@ module uart_comm (
 	localparam MSG_PUSH_JOB = 2;
 	localparam MSG_NONCE = 3;
 	localparam MSG_ACK = 4;
+	localparam MSG_RESEND = 5;
 
 	// 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
 	localparam JOB_SIZE = 256 + 96 + 32 + 32; // 52 bytes or 416 bits
@@ -83,7 +84,7 @@ module uart_comm (
 		.sys_clk_freq(sys_clk_freq)           // The master clock frequency
 	)
 	uart0(
-		.clk(comm_clk),                    // The master clock for this module
+		.clk(comm_clk),                   // The master clock for this module
 		.rst(reset),                      // Synchronous reset
 		.rx(rx_serial),                   // Incoming serial line
 		.tx(tx_serial),                   // Outgoing serial line
@@ -94,6 +95,19 @@ module uart_comm (
 		.is_receiving(is_receiving),      // Low when receive line is idle
 		.is_transmitting(is_transmitting),// Low when transmit line is idle
 		.recv_error(recv_error)           // Indicates error in receiving packet.
+	);
+
+	// CRC32 Module
+	wire crc_reset = (state == STATE_IDLE);
+	wire crc_received = received & (state == STATE_IDLE || state == STATE_READ); // if we've received a byte
+	wire [31:0] crc;
+
+	CRC32 crc_calc (
+		.clk (comm_clk), // same as UART
+		.reset (crc_reset), // if we're back in idle, the CRC is obsolete
+		.received (crc_received), // bool whether we've received a byte
+		.rx_byte (rx_byte), // UART received byte
+		.tx_crc (crc) // the calculated CRC
 	);
 
 	always @(posedge comm_clk) begin
@@ -133,11 +147,13 @@ module uart_comm (
 					msg_data <= {rx_byte, msg_data[MSG_BUF_LEN*8-1:8]}; // shift right by 8 bits and put in the new received byte
 					length <= length + 8'd1;
 
-					if (length == 8'd4) // when at 4th byte, we're at message type
+					if (length == 8'd4) begin// when at 4th byte, we're at message type
 						msg_type <= rx_byte;
+					end
 
-					if (length == msg_length) // finished, parse the packet
+					if (length == msg_length) begin // finished, parse the packet
 						state <= STATE_PARSE;
+					end
 				end
 			end
 
@@ -151,14 +167,18 @@ module uart_comm (
 					state <= STATE_IDLE;
 					transmit_packet <= 1;
 
-					if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
+					if (crc != 32'd0) begin
+						$display("CRC is incorrect: %8h", crc);
+						msg_type <= MSG_RESEND;
+					end
+					else if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
 						msg_type <= MSG_INFO;
 						msg_data[(MSG_BUF_LEN*8)-1:(MSG_BUF_LEN*8)-1-63] <= system_info;
 						msg_length <= 8'd16;
 					end
 					else if (msg_type == MSG_PUSH_JOB && msg_length == (JOB_SIZE/8 + 8)) // job size + 8 byte header
 					begin
-						current_job <= msg_data[8*8 +: JOB_SIZE]; // header is in the beginning, so the job is on the left
+						current_job <= msg_data[8*4 +: JOB_SIZE]; // header is in the beginning, so the job is on the left
 						new_work_flag <= ~new_work_flag;
 
 						msg_type <= MSG_ACK;
