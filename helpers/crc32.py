@@ -120,7 +120,7 @@ crc = crc_poly(
 print(hex(crc), '{0:032b}'.format(crc))
 assert crc == 0x00000000
 
-# post job from our own test_top.v
+# post job from our own test_top.v, the genesis block payload
 crc = crc_poly(
     bytearray.fromhex('3C000002FFFFFFFF7B2BAC1D4A5E1E4B495FAB291d00FFFF339A90BCF0BF58637DACCC90A8CA591EE9D8C8C3C803014F3687B1961BF91947'), 
     32, 
@@ -148,3 +148,13 @@ crc = crc_poly(
 )
 print(hex(crc), '{0:032b}'.format(crc))
 assert crc == 0x5ab0b938 # byte reversed, ofc
+
+# queue job from previous case, with a different number for message type
+crc = crc_poly(
+    bytearray.fromhex('3C00000200000000FFFFFFFF08090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30313233'), 
+    32, 
+    0x04C11DB7,
+    crc=0x00000000 # this was changed from 0xFFFFFFF to 0x00000000 to give correct crc's for our FPGA - wrong, but it works
+)
+print(hex(crc), '{0:032b}'.format(crc))
+assert crc == 0x614dc14e # byte reversed, ofc

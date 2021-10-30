@@ -77,9 +77,8 @@ module uart_comm_tb;
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h00);
 		uart_send_byte (8'h02);
-		uart_send_word (32'h00000000); // 2nd empty part of header, TODO: remove
 		uart_send_word (32'h00000000);
-		uart_send_word (32'h1FFFFFFF);
+		uart_send_word (32'hFFFFFFFF);
 		uart_send_word (32'h0b0a0908);
 		uart_send_word (32'h0f0e0d0c);
 		uart_send_word (32'h13121110);
@@ -91,6 +90,7 @@ module uart_comm_tb;
 		uart_send_word (32'h2b2a2928);
 		uart_send_word (32'h2f2e2d2c);
 		uart_send_word (32'h33323130);
+		uart_send_word (32'h4ec14d61); // crc 614dc14e
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
 		// // Bad CRC
@@ -224,7 +224,7 @@ module uart_comm_tb;
 		// $display ("PASSED: ACK\n");
 
 		// Check job
-		if (uut_noncemin != 32'h1FFFFFFF || uut_noncemax != 32'h00000000 || uut_data != 96'h131211100f0e0d0c0b0a0908 || uut_midstate != 256'h333231302f2e2d2c2b2a292827262524232221201f1e1d1c1b1a191817161514)
+		if (uut_noncemin != 32'hFFFFFFFF || uut_noncemax != 32'h00000000 || uut_data != 96'h131211100f0e0d0c0b0a0908 || uut_midstate != 256'h333231302f2e2d2c2b2a292827262524232221201f1e1d1c1b1a191817161514)
 		begin
 			$display ("TEST FAILED: Incorrect job:\n");
 			$display ("noncemin: %4X\nnoncemax: %4X\ndata: %24X\nmidstate: %64X\n", uut_noncemin, uut_noncemax, uut_data, uut_midstate);
