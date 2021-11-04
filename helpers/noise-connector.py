@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # source: https://github.com/jakubtrnka/braiins-open/blob/master/protocols/stratum/python_noise_tcp_client/requirements.txt
+# connects to a stratum v2 server, does the noise handshake and then disconnects
 
 import socket
 import binascii
