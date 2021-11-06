@@ -87,15 +87,15 @@ class Connection:
         self.conn_target = None
         self.sock = socket.socket()
 
-    def connect_to(self, conn_target):
+    def connect_to(self):
         ## connect to noise
-        self.sock.connect(('v2.stratum.slushpool.com', 3336))
-        # self.sock.connect(('localhost', 2000))
+        # host = 'v2.stratum.slushpool.com'
+        # port = 3336
+        host = 'localhost'
+        port = 2000
+        self.sock.connect((host, port))
 
-        Noise.connect_to_noise(self.sock)
-
-        conn_target.connect_in(self)
-        self.conn_target = conn_target
+        Noise.connect_to_noise(self.sock, host != 'localhost')
 
     def disconnect(self):
         # TODO: Review whether to use assert's or RuntimeErrors in simulation

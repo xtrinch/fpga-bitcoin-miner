@@ -25,7 +25,7 @@ def unwrap(item: bytes) -> (bytes, bytes):
 
 class Noise:
     @staticmethod
-    def connect_to_noise(sock):
+    def connect_to_noise(sock, verify_connection: bool = True):
         # prepare handshakestate objects for initiator and responder
         our_handshakestate = HandshakeState(
             SymmetricState(
@@ -53,15 +53,19 @@ class Noise:
         our_handshakestate.read_message(frame, message_buffer)
 
         pool_static_server_key = our_handshakestate.rs.data
+        print("Received static key:")
         print(pool_static_server_key)
         
-        signature = SignatureMessage(message_buffer, pool_static_server_key)
-        signature.verify()
+        if (verify_connection):
+            signature = SignatureMessage(message_buffer, pool_static_server_key)
+            signature.verify()
 
+        print("Handshake done!")
         return True
 
 class SignatureMessage:
     def __init__(self, raw_signature: bytes, noise_static_pubkey: bytes):
+        print(raw_signature)
         self.authority_key = base58.b58decode_check(SLUSHPOOL_CA_PUBKEY)
         self.noise_static_pubkey = noise_static_pubkey
         self.version = int.from_bytes(raw_signature[0:2], byteorder="little")

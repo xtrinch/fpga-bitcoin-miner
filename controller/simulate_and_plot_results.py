@@ -30,7 +30,7 @@ from event_bus import EventBus
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner
-from sim_primitives.network import Connection, ConnectionFactory
+from sim_primitives.connection import Connection, ConnectionFactory
 from sim_primitives.pool import Pool
 from sim_primitives.proxy import Proxy
 from sim_primitives.stratum_v1.miner import MinerV1

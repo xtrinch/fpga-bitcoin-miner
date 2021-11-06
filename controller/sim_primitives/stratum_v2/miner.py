@@ -26,7 +26,7 @@ import enum
 
 import sim_primitives.coins as coins
 from sim_primitives.miner import Miner
-from sim_primitives.network import Connection
+from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningJob
 from sim_primitives.protocol import DownstreamConnectionProcessor
 from sim_primitives.stratum_v2.messages import (

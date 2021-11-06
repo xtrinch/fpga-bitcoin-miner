@@ -29,7 +29,7 @@ from event_bus import EventBus
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner
-from sim_primitives.network import Connection, ConnectionFactory
+from sim_primitives.connection import Connection, ConnectionFactory
 from sim_primitives.pool import Pool
 from sim_primitives.stratum_v2.miner import MinerV2
 from sim_primitives.stratum_v2.pool import PoolV2
@@ -95,18 +95,6 @@ def main():
         start_message = '*** starting simulation (running as fast as possible)'
 
     if args.verbose:
-        @bus.on('pool1')
-        def subscribe_pool1(ts, conn_uid, message, aux=None):
-            print(
-                Fore.LIGHTCYAN_EX,
-                'T+{0:.3f}:'.format(ts),
-                '(pool1)',
-                conn_uid if conn_uid is not None else '',
-                message,
-                aux,
-                Fore.RESET,
-            )
-
         @bus.on('miner1')
         def subscribe_m1(ts, conn_uid, message):
             print(
@@ -117,18 +105,6 @@ def main():
                 message,
                 Fore.RESET,
             )
-
-    pool = Pool(
-        'pool1',
-        env,
-        bus,
-        protocol_type=PoolV2,
-        default_target=coins.Target.from_difficulty(
-            100000, mining_params.diff_1_target
-        ),
-        enable_vardiff=True,
-        simulate_luck=not args.no_luck,
-    )
 
     conn1 = Connection(
         env,
@@ -153,10 +129,8 @@ def main():
         simulate_luck=not args.no_luck,
     )
 
-    upstream = pool
-
-    m1.connect_to_pool(conn1, upstream)
-
+    m1.connect_to_pool(conn1)
+    
     env.run(until=args.limit)
 
     if not args.plain_output:

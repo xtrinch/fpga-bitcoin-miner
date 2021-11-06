@@ -26,7 +26,7 @@ from event_bus import EventBus
 
 import sim_primitives.coins as coins
 from sim_primitives.hashrate_meter import HashrateMeter
-from sim_primitives.network import Connection
+from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningSession, MiningJob, Pool
 from sim_primitives.protocol import DownstreamConnectionProcessor
 
@@ -85,10 +85,10 @@ class Miner(object):
 
                 self.connection_processor.submit_mining_solution(job)
 
-    def connect_to_pool(self, connection: Connection, target: Pool):
+    def connect_to_pool(self, connection: Connection):
         assert self.connection_processor is None, 'BUG: miner is already connected'
         
-        connection.connect_to(target)
+        connection.connect_to()
 
         self.connection_processor = self.protocol_type(self, connection)
         self.__emit_aux_msg_on_bus('Connecting to pool {}'.format(target.name))

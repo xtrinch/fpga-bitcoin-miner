@@ -27,7 +27,7 @@ from abc import abstractmethod
 import simpy
 from event_bus import EventBus
 
-from sim_primitives.network import Connection
+from sim_primitives.connection import Connection
 
 
 class Message:

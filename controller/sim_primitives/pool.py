@@ -30,7 +30,7 @@ from event_bus import EventBus
 import sim_primitives.coins as coins
 from sim_primitives.hashrate_meter import HashrateMeter
 from sim_primitives.protocol import UpstreamConnectionProcessor
-from sim_primitives.network import Connection, AcceptingConnection
+from sim_primitives.connection import Connection, AcceptingConnection
 import socket
 
 
