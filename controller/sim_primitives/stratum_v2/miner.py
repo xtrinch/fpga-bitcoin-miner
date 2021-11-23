@@ -28,7 +28,6 @@ import sim_primitives.coins as coins
 from sim_primitives.miner import Miner
 from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningJob
-from sim_primitives.protocol import DownstreamConnectionProcessor
 from sim_primitives.stratum_v2.messages import (
     SetupConnection,
     SetupConnectionSuccess,
@@ -45,12 +44,13 @@ from sim_primitives.stratum_v2.messages import (
 )
 from sim_primitives.stratum_v2.pool import PoolMiningChannel
 from sim_primitives.stratum_v2.types import ProtocolType, DownstreamConnectionFlags
+from sim_primitives.protocol import ConnectionProcessor
 
 
 # TODO: Move MiningChannel and session from Pool
 
 
-class MinerV2(DownstreamConnectionProcessor):
+class MinerV2(ConnectionProcessor):
     class ConnectionConfig:
         """Stratum V2 connection configuration.
 
@@ -73,14 +73,15 @@ class MinerV2(DownstreamConnectionProcessor):
         # Initiate V2 protocol setup
         # TODO-DOC: specification should categorize downstream and upstream flags.
         #  PubKey handling is also not precisely defined yet
-        self._send_msg(
+        print("Send Setup Connection MSG")
+        self.connection.send_msg(
             SetupConnection(
                 protocol=ProtocolType.MINING_PROTOCOL,
                 max_version=2,
                 min_version=2,
-                flags={DownstreamConnectionFlags.REQUIRES_STANDARD_JOBS},  # TODO:
-                endpoint_host=connection.conn_target.name,
-                endpoint_port=connection.port,
+                flags=0,  # TODO:
+                endpoint_host=connection.pool_host,
+                endpoint_port=connection.pool_port,
                 vendor=self.miner.device_information.get('vendor', 'unknown'),
                 hardware_version=self.miner.device_information.get(
                     'hardware_version', 'unknown'
@@ -90,6 +91,18 @@ class MinerV2(DownstreamConnectionProcessor):
             )
         )
         self.connection_config = None
+
+    def _recv_msg(self):
+        return self.connection.incoming.get()
+
+    def disconnect(self):
+        """Downstream node may initiate disconnect
+
+        """
+        self.connection.disconnect()
+
+    def _on_invalid_message(self, msg):
+        pass
 
     def visit_setup_connection_success(self, msg: SetupConnectionSuccess):
         self._emit_protocol_msg_on_bus('Connection setup', msg)
@@ -186,7 +199,7 @@ class MinerV2(DownstreamConnectionProcessor):
         """
         # TODO: seq_num is currently unused, we should use it for tracking
         #  accepted/rejected shares
-        self._send_msg(
+        self.connection._send_msg(
             SubmitSharesStandard(
                 channel_id=self.channel.id,
                 sequence_number=0,  # unique sequential identifier within the channel.

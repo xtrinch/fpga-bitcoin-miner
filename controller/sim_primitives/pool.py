@@ -286,6 +286,10 @@ class Pool(AcceptingConnection):
         self.accepted_shares = 0
         self.stale_shares = 0
 
+        self.protocol_type = self.connection_processor_clz(
+            self
+        );
+
     def reset_stats(self):
         self.accepted_submits = 0
         self.stale_submits = 0

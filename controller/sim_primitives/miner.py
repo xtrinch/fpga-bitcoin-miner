@@ -28,7 +28,7 @@ import sim_primitives.coins as coins
 from sim_primitives.hashrate_meter import HashrateMeter
 from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningSession, MiningJob, Pool
-from sim_primitives.protocol import DownstreamConnectionProcessor
+from sim_primitives.protocol import ConnectionProcessor
 
 class Miner(object):
     def __init__(
@@ -37,7 +37,7 @@ class Miner(object):
         env: simpy.Environment,
         bus: EventBus,
         diff_1_target: int,
-        protocol_type: DownstreamConnectionProcessor,
+        protocol_type: ConnectionProcessor,
         device_information: dict,
         simulate_luck=True,
         *args,
@@ -90,8 +90,9 @@ class Miner(object):
         
         connection.connect_to()
 
+        # Intializes MinerV2 instance
         self.connection_processor = self.protocol_type(self, connection)
-        self.__emit_aux_msg_on_bus('Connecting to pool {}'.format(target.name))
+        self.__emit_aux_msg_on_bus('Connecting to pool {}:{}'.format(connection.pool_host, connection.pool_port))
 
     def disconnect(self):
         self.__emit_aux_msg_on_bus('Disconnecting from pool')

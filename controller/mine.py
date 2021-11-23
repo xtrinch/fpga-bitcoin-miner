@@ -29,10 +29,10 @@ from event_bus import EventBus
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner
-from sim_primitives.connection import Connection, ConnectionFactory
 from sim_primitives.pool import Pool
 from sim_primitives.stratum_v2.miner import MinerV2
 from sim_primitives.stratum_v2.pool import PoolV2
+from sim_primitives.connection import Connection
 
 init()
 bus = EventBus()
@@ -111,6 +111,10 @@ def main():
         'stratum',
         mean_latency=args.latency,
         latency_stddev_percent=0 if args.no_luck else 10,
+        # pool_host = 'v2.stratum.slushpool.com'
+        # pool_port = 3336
+        pool_host = 'localhost',
+        pool_port = 2000
     )
     
     m1 = Miner(
@@ -129,6 +133,7 @@ def main():
         simulate_luck=not args.no_luck,
     )
 
+    print("Going to connect to pool")
     m1.connect_to_pool(conn1)
     
     env.run(until=args.limit)
@@ -136,31 +141,7 @@ def main():
     if not args.plain_output:
         print(start_message)
 
-    if args.plain_output:
-        print(
-            pool.accepted_shares,
-            pool.accepted_submits,
-            pool.stale_shares,
-            pool.stale_submits,
-            pool.rejected_submits,
-            sep=',',
-        )
-    else:
-        print('simulation finished!')
-        print(
-            'accepted shares:',
-            pool.accepted_shares,
-            'accepted submits:',
-            pool.accepted_submits,
-        )
-        print(
-            'stale shares:',
-            pool.stale_shares,
-            'stale submits:',
-            pool.stale_submits,
-            'rejected submits:',
-            pool.rejected_submits,
-        )
+    print('simulation finished!')
 
 if __name__ == '__main__':
     main()

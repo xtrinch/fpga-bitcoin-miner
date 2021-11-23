@@ -33,11 +33,9 @@ import socket
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner
-from sim_primitives.connection import Connection, ConnectionFactory
 from sim_primitives.pool import Pool
 from sim_primitives.stratum_v2.miner import MinerV2
 from sim_primitives.stratum_v2.pool import PoolV2
-from noise.connection import NoiseConnection, Keypair
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState
@@ -45,8 +43,9 @@ from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
-from sim_primitives.noise import wrap, unwrap
 from cryptography.hazmat.primitives.asymmetric import x25519
+from sim_primitives.connection import Connection
+from sim_primitives.stratum_v2.messages import SetupConnection, SetupConnectionSuccess
 
 init()
 bus = EventBus()
@@ -142,19 +141,6 @@ def main():
     conn, addr = sock.accept()
     print('Accepted connection from', addr)
 
-    # noise = NoiseConnection.from_name(b'Noise_NX_25519_ChaChaPoly_BLAKE2s')
-
-    # our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
-    # # their_public = base64.b64decode('qRCwZSKInrMAq5sepfCdaCsRJaoLe5jhtzfiw7CjbwM=')
-    # # preshared = base64.b64decode('FpCyhws9cxwWoV4xELtfJvjJN+zQVRPISllRWgeopVE=')
-
-
-    # noise.set_keypair_from_private_bytes(Keypair.STATIC, our_private)
-    # # noise.set_keypair_from_public_bytes(Keypair.REMOTE_STATIC, their_public)
-
-    # noise.set_as_responder()
-    # noise.start_handshake()
-
     our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
     private = x25519.X25519PrivateKey.from_private_bytes(our_private)
 
@@ -178,7 +164,7 @@ def main():
 
     # wait for empty message receive
     ciphertext = conn.recv(4096)
-    frame, _ = unwrap(ciphertext)
+    frame, _ = Connection.unwrap(ciphertext)
     message_buffer = bytearray()
     our_handshakestate.read_message(frame, message_buffer)
 
@@ -186,47 +172,30 @@ def main():
     ## in the buffer, there should be Signature Noise Message, but we 
     ## obviously don't really know how to construct it, so we'll skip it for localhost
     message_buffer = bytearray()
-    our_handshakestate.write_message(b"", message_buffer)
-    message_buffer = wrap(bytes(message_buffer))
+    cipherstates = our_handshakestate.write_message(b"", message_buffer)
+    message_buffer = Connection.wrap(bytes(message_buffer))
     num_sent = conn.send(message_buffer)  # rpc send
 
     print("Handshake done")
-    return
 
-
-    # # -> e     which is really      -> 2 byte length, 32 byte public key, 22 byte cleartext payload
-    # message_buffer = bytearray()
-    # our_handshakestate.write_message(b"", message_buffer)
-    # message_buffer = wrap(bytes(message_buffer))
-    # num_sent = sock.send(message_buffer)  # rpc send
-
-    # #  <- e, ee, s, es, SIGNATURE_NOISE_MESSAGE
-    # message_buffer = bytearray()
-    # ciphertext = sock.recv(4096)  # rpc recv
-    # frame, _ = unwrap(ciphertext)
-    # our_handshakestate.read_message(frame, message_buffer)
-
-    # pool_static_server_key = our_handshakestate.rs.data
-    # print(pool_static_server_key)
-        
-    # Perform handshake. Break when finished
-    for action in cycle(['receive', 'send']):
-        if noise.handshake_finished:
-            break
-        elif action == 'send':
-            ciphertext = noise.write_message()
-            conn.sendall(ciphertext)
-        elif action == 'receive':
-            data = conn.recv(2048)
-            plaintext = noise.read_message(data)
-
-    # Endless loop "echoing" received data
-    while True:
-        data = conn.recv(2048)
-        if not data:
-            break
-        received = noise.decrypt(data)
-        conn.sendall(noise.encrypt(received))
+    # wait for open connection
+    ciphertext = conn.recv(4096)
+    print("Raw: Setup connection rcv")
+    print(ciphertext)
+    frame, _ = Connection.unwrap(ciphertext)
+    plaintext = cipherstates[0].decrypt_with_ad(b'', frame)
+    print("Decoded: Setup connection rcv")
+    print(plaintext)
+    
+    # plaintext is a frame
+    extension_type = plaintext[0:1]
+    msg_type = plaintext[2]
+    
+    if msg_type == 0x00:
+        setup_connection_msg = SetupConnection.from_bytes(plaintext[6:]) # 0-6 is general frame data
+        pool.protocol_type.visit_setup_connection(setup_connection_msg)
+    else:
+        raise ValueError('Expected a setup connection')
 
     env.run(until=args.limit)
 

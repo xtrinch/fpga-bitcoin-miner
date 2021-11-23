@@ -21,6 +21,7 @@
 # contact us at opensource@braiins.com.
 
 import typing
+from .dataTypes import *
 
 """Stratum V2 messages."""
 from sim_primitives.protocol import Message
@@ -46,7 +47,7 @@ class SetupConnection(Message):
         protocol: int,
         max_version: int,
         min_version: int,
-        flags: set,
+        flags: int,
         endpoint_host: str,
         endpoint_port: int,
         vendor: str,
@@ -57,7 +58,7 @@ class SetupConnection(Message):
         self.protocol = protocol
         self.max_version = max_version
         self.min_version = min_version
-        self.flags = set(flags)
+        self.flags = flags
         self.endpoint_host = endpoint_host
         self.endpoint_port = endpoint_port
         # Device information
@@ -66,7 +67,52 @@ class SetupConnection(Message):
         self.firmware = firmware
         self.device_id = device_id
         super().__init__()
+    
+    def to_bytes(self):
+        protocol = U8(self.protocol)
+        min_version = U16(self.min_version)
+        max_version = U16(self.max_version)
+        flags = U32(self.flags)
+        endpoint_host = STR0_255(self.endpoint_host)
+        endpoint_port = U16(self.endpoint_port)
+        vendor = STR0_255(self.vendor)
+        hardware_version = STR0_255((self.hardware_version))
+        firmware = STR0_255(self.firmware)
+        device_id = STR0_255(self.device_id)
 
+        payload = protocol+min_version+max_version+flags+endpoint_host+endpoint_port+vendor+hardware_version+firmware+device_id
+        frame = FRAME(0x0abc,"SetupConnection",payload)
+
+        return frame;
+    
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        protocol = bytes[0]
+        min_version = int.from_bytes(bytes[1:2], byteorder='little')
+        max_version = int.from_bytes(bytes[3:4], byteorder='little')
+        flags = int.from_bytes(bytes[5:8], byteorder='little')
+        endpoint_length = bytes[9]
+        endpoint_host = bytes[10:10+endpoint_length].decode("utf-8") 
+        endpoint_port = bytes[10+endpoint_length+1]
+        vendor_length = bytes[10+endpoint_length+2]
+        vendor = bytes[10+endpoint_length+3:10+endpoint_length+3+vendor_length].decode("utf-8") 
+
+        print("ENDPOINT_HOSTs")
+        print(endpoint_host)
+        print(vendor)
+
+        msg = SetupConnection(
+            protocol=protocol,
+            min_version=min_version,
+            max_version=max_version,
+            flags=flags,
+            endpoint_host=endpoint_host,
+            endpoint_port=endpoint_port,
+            vendor=vendor,
+            hardware_version="",
+            firmware=""
+        )
+        return msg
 
 class SetupConnectionSuccess(Message):
     def __init__(self, used_version: int, flags: set):

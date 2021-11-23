@@ -127,10 +127,10 @@ class PoolV2(UpstreamConnectionProcessor):
 
     """
 
-    def __init__(self, pool: Pool, connection):
+    def __init__(self, pool: Pool, connection = None):
         self.pool = pool
         self.connection_config = None
-        self._mining_channel_registry = ChannelRegistry(connection.uid)
+        # self._mining_channel_registry = ChannelRegistry(connection.uid)
         super().__init__(pool.name, pool.env, pool.bus, connection)
 
     def terminate(self):
@@ -149,8 +149,8 @@ class PoolV2(UpstreamConnectionProcessor):
         response_flags = set()
 
         # arbitrary for now
-        if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
-            response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
+        # if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
+        response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
 
         if self.connection_config is None:
             self.connection_config = ConnectionConfig(msg)

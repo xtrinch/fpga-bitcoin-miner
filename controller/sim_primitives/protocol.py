@@ -159,27 +159,3 @@ class UpstreamConnectionProcessor(ConnectionProcessor):
     @abstractmethod
     def _on_invalid_message(self, msg):
         pass
-
-
-class DownstreamConnectionProcessor(ConnectionProcessor):
-    """Processes messages flowing through a downstream node
-
-    This class only determines the direction in which it accesses the connection.
-    Also, the downstream processor is able to initiate the shutdown of the connection.
-    """
-
-    def _send_msg(self, msg):
-        self.connection.outgoing.put(msg)
-
-    def _recv_msg(self):
-        return self.connection.incoming.get()
-
-    def disconnect(self):
-        """Downstream node may initiate disconnect
-
-        """
-        self.connection.disconnect()
-
-    @abstractmethod
-    def _on_invalid_message(self, msg):
-        pass
