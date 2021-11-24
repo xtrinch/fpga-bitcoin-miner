@@ -20,7 +20,11 @@ module top (
     // PLL to get 100.5MHz clock						
 	wire hash_clk;
     wire locked;							
-    pll myPLL (.clock_in(CLK), .global_clock(hash_clk), .locked(locked));	
+    pll myPLL (
+        .clock_in(CLK), 
+        .clock_out(hash_clk), 
+        .locked(locked)
+    );	
 
     fpgaminer_top #(
         .LOOP_LOG2(LOOP_LOG2) // 0-5

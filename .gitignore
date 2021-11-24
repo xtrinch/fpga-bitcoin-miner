@@ -10,3 +10,4 @@ build/
 *.pyc
 test
 *.sim
+*.dot

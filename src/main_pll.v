@@ -15,29 +15,19 @@
 									
 module pll(								
 	input  clock_in,						
-	output global_clock,						
+	output clock_out,						
 	output locked // will go high when PLL is locked - has a stable voltage						
 );								
 									
-   wire g_clock_int;						
-   															
-   SB_PLL40_CORE #(							
-		.FEEDBACK_PATH("SIMPLE"),				
-		.DIVR(4'b0000),		// DIVR =  0			
-		.DIVF(7'b1000010),	// DIVF = 66			
-		.DIVQ(3'b011),		// DIVQ =  3			
-		.FILTER_RANGE(3'b001)	// FILTER_RANGE = 1		
-	) uut (								
-		.LOCK(locked),
-		.RESETB(1'b1),
-		.BYPASS(1'b0),						
-		.REFERENCECLK(clock_in),				
-	        .PLLOUTGLOBAL(g_clock_int)				
-	);							
-									
-   SB_GB sbGlobalBuffer_inst( 
-	   .USER_SIGNAL_TO_GLOBAL_BUFFER(g_clock_int), 
-	   .GLOBAL_BUFFER_OUTPUT(global_clock) 
-	);	
+    ECP5_PLL
+    #( .IN_MHZ(12)
+     , .OUT0_MHZ(50)
+     ) pll
+     ( .clkin(clock_in)
+     , .reset(1'b0)
+     , .standby(1'b0)
+     , .locked(locked)
+     , .clkout0(clock_out)
+     );
 
 endmodule	
