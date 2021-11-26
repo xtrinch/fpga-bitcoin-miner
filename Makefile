@@ -3,7 +3,7 @@ BUILD     = ./build
 DEVICE    = 8k
 FOOTPRINT = ct256
 NAME = miner
-TRELLIS?=/usr/share/trellis
+TRELLIS?=/usr/local/share/trellis
 
 # Files
 FILES = src/fpgaminer_top.v src/sha256_functions.v src/sha256_transform.v src/top.v src/uart.v src/uart_comm.v src/main_pll.v ./src/crc32.v
@@ -15,7 +15,7 @@ TOP_TEST_FILES = ./testbenches/mock_pll.v ./src/uart_comm.v ./src/uart.v ./src/f
 
 all:
 	# clean old build data
-	# rm $(BUILD)/*
+	rm $(BUILD)/*
 	
 	# if build folder doesn't exist, create it
 	mkdir -p $(BUILD)
@@ -41,10 +41,10 @@ test-top:
 	iverilog -o ./testbenches/test-top.sim ./testbenches/test_top.v $(TOP_TEST_FILES)
 	./testbenches/test-top.sim
 
+# Bus 001 Device 008: ID 0403:6010 Future Technology Devices International, Ltd FT2232C/D/H Dual UART/FIFO IC
+# config: ftdi_vid_pid 0x0403 0x6010
 program:
-	# iceprog $(BUILD)/$(NAME).bin
-	openocd -f ${TRELLIS}/misc/openocd/ecp5-evn.cfg -c "transport select jtag; init; svf $<; exit"
-
+	openocd -f ${TRELLIS}/misc/openocd/ecp5-evn.cfg -c "transport select jtag; init; svf $(BUILD)/$(NAME).svf; exit"
 
 clean:
 	rm build/*

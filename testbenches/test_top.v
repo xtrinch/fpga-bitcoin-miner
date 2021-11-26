@@ -144,7 +144,7 @@ module test_top ();
 		uart_expect_byte (8'd8); // not sure, why not just 8?
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd03);
+		uart_expect_byte (8'd03); // message type nonce
 		uart_expect_byte (8'h1d);
 		uart_expect_byte (8'hac);
 		uart_expect_byte (8'h2b);
