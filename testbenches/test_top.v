@@ -17,7 +17,6 @@ module test_top ();
 	// UUT
 	reg uut_rx = 1'b1;
 	wire uut_tx;
-	wire uut_new_work;
 	wire [255:0] uut_midstate;
 	wire [95:0] uut_data;
 	wire [31:0] uut_noncemin, uut_noncemax;

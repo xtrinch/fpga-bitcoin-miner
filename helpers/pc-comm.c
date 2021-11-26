@@ -9,9 +9,10 @@
 
 int open_serial(char *port, int baud);
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    int tty = open_serial("/dev/ttyUSB1", B9600);
+    // argv[1] should be something like /dev/ttyUSB1
+    int tty = open_serial(argv[1], B9600);
     uint8_t buff[256];   /* Buffer to store the data received              */
     int  n;    /* Number of bytes read by the read() system call */
 
