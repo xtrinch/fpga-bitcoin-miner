@@ -44,8 +44,7 @@ int open_serial(char *port, int baud)
     cfsetispeed(&SerialPortSettings,B9600); /* Set Read  Speed as 115200                       */
     cfsetospeed(&SerialPortSettings,B9600); /* Set Write Speed as 115200                       */
 
-    /* 8N1 Mode */2", B9600);
-    uint8_t buff[256];   /* Buffer to store the d
+    /* 8N1 Mode */
     SerialPortSettings.c_cflag &= ~PARENB;   /* Disables the Parity Enable bit(PARENB),So No Parity   */
     SerialPortSettings.c_cflag &= ~CSTOPB;   /* CSTOPB = 2 Stop bits,here it is cleared so 1 Stop bit */
     SerialPortSettings.c_cflag &= ~CSIZE;    /* Clears the mask for setting the data size             */

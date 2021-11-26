@@ -1,8 +1,12 @@
 module top (
 	input wire CLK,
 	input wire RX,
-	output wire TX
+	output wire TX,
+    output [7:0] led
 );
+
+    // just to know our program is running
+    assign led = 8'hAA;
 
     parameter baud_rate = 9600;
     parameter sys_clk_freq = 12000000;

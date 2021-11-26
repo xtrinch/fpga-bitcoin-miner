@@ -72,8 +72,6 @@ module uart_comm (
     reg [7:0] msg_type; // the type of received message
 	reg [3:0] state = STATE_IDLE;
 
-	// assign {status_led4, status_led3, status_led2, status_led1} = rx_byte[3:0];
-
 	assign error_led = recv_error;
 
     parameter baud_rate = 9600;
@@ -221,19 +219,18 @@ module uart_comm (
 	// Cross from comm_clk to hash_clk domain, see https://www.nandland.com/articles/crossing-clock-domains-in-an-fpga.html
 	// new work flag is being set from the uart logic, so we need to step it up to hash clk
 	reg [JOB_SIZE-1:0] meta_job;
-	reg [2:0] meta_new_work_flag;
+	reg [2:0] meta_new_work_flag = 2'd0;
 
 	// golden ticket is being set by the hash clock, so we need to step it down to uart clk
-	reg [2:0] meta_golden_nonce_flag;
-	reg meta_new_golden_nonce;
-	reg [31:0] meta_golden_nonce;
+	reg [2:0] meta_golden_nonce_flag = 2'd0;
+	reg meta_new_golden_nonce = 0;
+	reg [31:0] meta_golden_nonce = 31'd0;
 
 	always @ (posedge hash_clk) begin
 		meta_job <= current_job;
 		meta_new_work_flag <= {new_work_flag, meta_new_work_flag[2:1]}; // right shift
 		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
 		{midstate, work_data, nonce_min, nonce_max} <= meta_job;
-
 
 		meta_golden_nonce_flag <= {new_golden_nonce, meta_golden_nonce_flag[2:1]}; // right shift
 		if (meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]) begin
