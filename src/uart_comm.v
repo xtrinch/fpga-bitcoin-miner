@@ -236,7 +236,6 @@ module uart_comm (
 		if (meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]) begin
 			meta_new_golden_nonce <= 1'b1;
 		end
-		// meta_new_golden_nonce <= meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
 
 		if (new_golden_nonce) begin
 			meta_golden_nonce <= golden_nonce;

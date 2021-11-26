@@ -13,10 +13,12 @@ Compile C code with `gcc pc-comm.c -o pc-comm`  and run with `./pc-comm` to obse
 Send packets to FPGA with bash command:
   - Get info: `echo -en '\x08\x00\x00\x00\xf9\xea\x98\x0a' > /dev/ttyUSB2`
   - Ping: `echo -en '\x00' > /dev/ttyUSB2`
+  - Send genesis block mine: `echo -en '\x3C\x00\x00\x02\xFF\xFF\xFF\xFF\x7B\x2B\xAC\x1D\x4A\x5E\x1E\x4B\x49\x5F\xAB\x29\x1d\x00\xFF\xFF\x33\x9A\x90\xBC\xF0\xBF\x58\x63\x7D\xAC\xCC\x90\xA8\xCA\x59\x1E\xE9\xD8\xC8\xC3\xC8\x03\x01\x4F\x36\x87\xB1\x96\x1B\xF9\x19\x47\x77\x15\x4f\x81' > /dev/ttyUSB2`
 
 Both should return either pong or the info you can find harcoded in the `uart_comm` file:
   - Pong: `0x01`
   - Get info response: `0x10 00 00 00 de ad be ef 13 37 0d 13 00 00 00 00`
+  - Genesis block send response: `0x01` - acknowledge, `08 00 00 03 24 3b 06 83` nonce (WRONG???)
 
 ## Manual yosys inspection
 - `read -vlog2k src/*.v`

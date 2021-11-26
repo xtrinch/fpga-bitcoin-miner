@@ -77,7 +77,7 @@ module fpgaminer_top (
 	wire feedback_next;
 
     // from 0 to LOOP - 1
-	assign cnt_next =  (LOOP == 1) ? 6'd0 : (cnt + 6'd1) & (LOOP-1);
+	assign cnt_next = (LOOP == 1) ? 6'd0 : (cnt + 6'd1) & (LOOP-1);
 
 	// On the first count (cnt==0), load data from previous stage (no feedback)
 	// on 1..LOOP-1, take feedback from current stage
@@ -113,7 +113,7 @@ module fpgaminer_top (
 		nonce <= nonce_next;
 
 		// Check to see if the last hash generated is valid.
-		golden_nonce_found <= (hash2[255:224] == 32'h00000000) && !feedback_d1;
+		golden_nonce_found <= (hash2[255:224] == 32'h00000000) && !feedback_d1 && !wait_for_work;
 		if(golden_nonce_found)
 		begin
 			wait_for_work <= 1'b1;
