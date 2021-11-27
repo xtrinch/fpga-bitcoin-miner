@@ -92,7 +92,7 @@ module test_top ();
 
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 		
-		#130000;
+		#10000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else

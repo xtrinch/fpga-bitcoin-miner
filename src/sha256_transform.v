@@ -21,7 +21,7 @@ module sha256_transform #(
 	input wire [5:0] cnt, // where in the LOOP are we
 	input wire [255:0] rx_state, // initial compression state
 	input wire [511:0] rx_input, // data we'd like to hash
-	output reg [255:0] tx_hash // 255 bit hash output
+	output reg [255:0] tx_hash = {256{1'b1}} // 255 bit hash output
 );
 	// 64 Constants defined by the SHA-2 standard. - sqrt3(primes)
 	localparam Ks = {
@@ -86,8 +86,8 @@ module sha256_digester (
 	input [31:0] k, // constant
 	input [511:0] rx_w, // message schedule, 16 words
 	input [255:0] rx_state, // input state of stage (prev state)
-	output reg [511:0] tx_w, // next stage of the message schedule
-	output reg [255:0] tx_state // calculated next state of compression stage
+	output reg [511:0] tx_w = 512'd0, // next stage of the message schedule
+	output reg [255:0] tx_state = 256'd0 // calculated next state of compression stage
 );
 	// temporary words declaration for use in below calculations
 	wire [31:0] e0_w, e1_w, ch_w, maj_w, s0_w, s1_w;

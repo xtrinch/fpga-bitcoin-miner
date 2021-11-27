@@ -7,8 +7,9 @@ module fpgaminer_top (
 	input wire [31:0] nonce_min, // minimum nonce for job
 	input wire [31:0] nonce_max, // maximum nonce for job
 	input wire reset,
-	output reg [31:0] golden_nonce,
-	output reg new_golden_nonce // whether we found a hash
+	output reg [31:0] golden_nonce = 32'd0,
+	output reg new_golden_nonce = 1'd0, // whether we found a hash
+	output wire [7:0] leds
 );
 	// determines how unrolled the SHA-256 calculations are. 
     // a setting of 0 will completely unroll the calculations, 
@@ -23,7 +24,8 @@ module fpgaminer_top (
 	localparam [5:0] LOOP = (6'd1 << LOOP_LOG2);
 
 	// The nonce will always be larger at the time we discover a valid
-	// hash. This is its offset from the nonce that gave rise to the valid
+	// hash because we are pipelining the calculation of the hashes.
+	//  This is its offset from the nonce that gave rise to the valid
 	// hash (except when LOOP_LOG2 == 0 or 1, where the offset is 131 or
 	// 66 respectively).
 	localparam [31:0] GOLDEN_NONCE_OFFSET = (32'd1 << (7 - LOOP_LOG2)) + 32'd1;
@@ -43,7 +45,7 @@ module fpgaminer_top (
     // it is precomputed at the PC and sent to the miner 
 	reg [255:0] midstate_buf = 256'd0;
     // the leftmost data of the right 511 bits of the header (a piece of the merkle root, time, target) 
-    reg [95:0] data_buf = 95'd0;
+    reg [95:0] data_buf = 96'd0;
 
 	wire sha_clk = 1'd0;
 	assign sha_clk = wait_for_work ? 1'b0 : hash_clk;
@@ -53,7 +55,7 @@ module fpgaminer_top (
     // 1st hash round - rightmost 511 bits of the block header
 	sha256_transform #(.LOOP(LOOP)) uut (
 		.feedback(feedback),
-		.clk(sha_clk),
+		.clk(hash_clk),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(midstate_buf),
 		.rx_input(data), // data we'd like to hash
@@ -62,14 +64,13 @@ module fpgaminer_top (
     // 2nd hash round - hashing the hash of the first round
 	sha256_transform #(.LOOP(LOOP)) uut2 (
 		.feedback(feedback),
-		.clk(sha_clk),
+		.clk(hash_clk),
 		.cnt(cnt), // where in the LOOP are we
 		.rx_state(256'h5be0cd191f83d9ab9b05688c510e527fa54ff53a3c6ef372bb67ae856a09e667), // initial hash values h7 downto h1
 		.rx_input({256'h0000010000000000000000000000000000000000000000000000000080000000, hash}), // 256bits of padding (length on the left and 1 padded on the right) + previous hash
 		.tx_hash(hash2)
-	);	assign sha_clk = wait_for_work ? 1'b0 : hash_clk;
-
-
+	);	
+	
 	//// Control Unit
 	reg feedback_d1 = 1'd0; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
 	reg golden_nonce_found = 1'd0; // output is delayed for 1 cycle behind internal value
@@ -88,8 +89,18 @@ module fpgaminer_top (
 	assign feedback = cnt != 0;
 
     // if we're inside the feedback loop, do not increment the nonce
-	assign nonce_next = reset ? nonce_min : feedback_next ? nonce : (nonce + 32'd1);
+	assign nonce_next = reset ? nonce_min : (feedback_next ? nonce : (nonce + 32'd1));
 	
+	// just to know our program is running
+    assign leds[0] = !wait_for_work; // if we negate it, we'll get the true value out
+    assign leds[1] = !reset;
+	assign leds[2] = !nonce[0];
+	assign leds[3] = !golden_nonce_found;
+	assign leds[4] = !new_golden_nonce;
+	assign leds[5] = !feedback;
+	assign leds[6] = !cnt;
+	assign leds[7] = !(hash_clk == sha_clk);
+
 	always @ (posedge hash_clk)
 	begin
 		if (reset) begin
@@ -99,17 +110,17 @@ module fpgaminer_top (
 			feedback_d1 <= 1'b0;
 		end
 
-        // Give new data to the hasher, feed it the hash of the first 511 bits of the block header
-        midstate_buf <= midstate;
-        data_buf <= work_data;
+		// Give new data to the hasher, feed it the hash of the first 511 bits of the block header
+		midstate_buf <= midstate;
+		data_buf <= work_data;
 
 		feedback_d1 <= feedback;
 		cnt <= cnt_next;
 		new_golden_nonce <= golden_nonce_found; // output is delayed by one cycle to make sure the nonce is written into golden_nonce
 
-        // { padding length=384 bits, nonce, data=12 bytes }
-        // 0x00000280 = 640
-        // 0x80000000 = 100... in binary - padded 1
+		// { padding length=384 bits, nonce, data=12 bytes }
+		// 0x00000280 = 640
+		// 0x80000000 = 100... in binary - padded 1
 		data <= {384'h000002800000000000000000000000000000000000000000000000000000000000000000000000000000000080000000, nonce_next, data_buf[95:0]};
 		nonce <= nonce_next;
 

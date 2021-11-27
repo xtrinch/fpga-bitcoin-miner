@@ -5,9 +5,6 @@ module top (
     output [7:0] led
 );
 
-    // just to know our program is running
-    assign led = 8'hAA;
-
     parameter baud_rate = 9600;
     parameter sys_clk_freq = 12000000;
     parameter LOOP_LOG2 = 5;
@@ -40,7 +37,8 @@ module top (
         .golden_nonce(golden_nonce),
 	    .new_golden_nonce(new_golden_nonce), // whether we found a hash
         .nonce_min(nonce_min), // minimum nonce for job
-	    .nonce_max(nonce_max) // maximum nonce for job
+	    .nonce_max(nonce_max), // maximum nonce for job
+        .leds(led)
     );
 
 	uart_comm #(

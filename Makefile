@@ -15,7 +15,7 @@ TOP_TEST_FILES = ./testbenches/mock_pll.v ./src/uart_comm.v ./src/uart.v ./src/f
 
 all:
 	# clean old build data
-	# rm $(BUILD)/*
+	rm $(BUILD)/*
 	
 	# if build folder doesn't exist, create it
 	mkdir -p $(BUILD)
