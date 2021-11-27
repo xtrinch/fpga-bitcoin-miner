@@ -35,7 +35,7 @@ module fpgaminer_top (
     wire [255:0] hash2; // hash of the first round of block header hash
 	// count and feedback are controlled by this unit so we don't have to
 	// calculate it twice for each hasher
-	reg [5:0] cnt; // where in the LOOP are we
+	reg [5:0] cnt = 5'd0; // where in the LOOP are we
 	wire feedback; // whether we're inside the same hash or a new one
 	reg wait_for_work = 1'b1;
 
