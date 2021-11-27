@@ -57,17 +57,22 @@ module uart(
     output wire received,            // Indicates that a byte has been received
     output [7:0] rx_byte,       // Byte received
     output wire is_receiving,   // Low when receive line is idle.
+    output wire is_receive_timeout,   // Low when receive line is idle.
     output wire is_transmitting,// Low when transmit line is idle.
     output wire recv_error,      // Indicates error in receiving packet.
     output reg [3:0] rx_samples,
     output reg [3:0] rx_sample_countdown
 );
 
-// The clock_divider is calculated using baud_rate and sys_clk_freq.  
-// To modify baud rate you can modify the defaults shown below or instantiate
-// the module using the template shown in the INSTANTIATION section above. 
-// For aditional information about instantiation please see:
-// http://www.sunburst-design.com/papers/CummingsHDLCON2002_Parameters_rev1_2.pdf
+	// memory for is receiving, so we can know if the line is idle for a while
+	reg [3:0] is_receiving_mem = 4'b1111;
+    assign is_receive_timeout = !is_receiving_mem[0] & !is_receiving_mem[1] & !is_receiving_mem[2] & !is_receiving_mem[3];
+
+    // The clock_divider is calculated using baud_rate and sys_clk_freq.  
+    // To modify baud rate you can modify the defaults shown below or instantiate
+    // the module using the template shown in the INSTANTIATION section above. 
+    // For aditional information about instantiation please see:
+    // http://www.sunburst-design.com/papers/CummingsHDLCON2002_Parameters_rev1_2.pdf
 
     parameter baud_rate = 9600;
     parameter sys_clk_freq = 100000000;
@@ -107,6 +112,8 @@ module uart(
     reg [3:0] tx_bits_remaining;
     reg [7:0] tx_data;
     
+    // counts up until it reaches one baud in comm_clk cycles
+    reg [log2(one_baud_cnt * 16)-1:0] baud_cnt = 0;
 
 //** ASSIGN STATEMENTS ****************************************
 
@@ -133,6 +140,15 @@ module uart(
 //** Body *****************************************************
 
     always @(posedge clk) begin
+        baud_cnt <= baud_cnt + 1;
+        // $display(baud_cnt);
+        // we'll get trapped in here once we're at one baud
+        if (baud_cnt == one_baud_cnt) begin
+            // $display("One Baud");
+            is_receiving_mem <= {is_receiving, is_receiving_mem[3:1]};
+            baud_cnt <= 0;
+        end
+        
         if (rst) begin
             recv_state <= RX_IDLE;
             tx_state <= TX_IDLE;

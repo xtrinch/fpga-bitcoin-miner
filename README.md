@@ -18,7 +18,7 @@ Send packets to FPGA with bash command:
 Both should return either pong or the info you can find harcoded in the `uart_comm` file:
   - Pong: `0x01`
   - Get info response: `0x10 00 00 00 de ad be ef 13 37 0d 13 00 00 00 00`
-  - Genesis block send response: `0x01` - acknowledge, `08 00 00 03 24 3b 06 83` nonce (WRONG???)
+  - Genesis block send response: `0x01` - acknowledge, `08 00 00 03 1d ac 2b 76` nonce (WRONG???)
 
 ## Manual yosys inspection
 - `read -vlog2k src/*.v`

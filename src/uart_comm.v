@@ -60,6 +60,7 @@ module uart_comm (
 	wire received; // signal that a byte has been received
 	wire [7:0] rx_byte;
 	wire is_receiving; // whether uart is receiving or not
+	wire is_receiving_timeout; // whether uart is not receiving for a while now
 	wire is_transmitting; // whether uart is transmitting or not
 	wire recv_error;
 
@@ -82,17 +83,18 @@ module uart_comm (
 		.sys_clk_freq(sys_clk_freq)           // The master clock frequency
 	)
 	uart0(
-		.clk(comm_clk),                   // The master clock for this module
-		.rst(reset),                      // Synchronous reset
-		.rx(rx_serial),                   // Incoming serial line
-		.tx(tx_serial),                   // Outgoing serial line
-		.transmit(transmit),              // Signal to transmit
-		.tx_byte(tx_byte),                // Byte to transmit
-		.received(received),              // Indicated that a byte has been received
-		.rx_byte(rx_byte),                // Byte received
-		.is_receiving(is_receiving),      // Low when receive line is idle
-		.is_transmitting(is_transmitting),// Low when transmit line is idle
-		.recv_error(recv_error)           // Indicates error in receiving packet.
+		.clk(comm_clk),                    // The master clock for this module
+		.rst(reset),                       // Synchronous reset
+		.rx(rx_serial),                    // Incoming serial line
+		.tx(tx_serial),                    // Outgoing serial line
+		.transmit(transmit),               // Signal to transmit
+		.tx_byte(tx_byte),                 // Byte to transmit
+		.received(received),               // Indicated that a byte has been received
+		.rx_byte(rx_byte),                 // Byte received
+		.is_receiving(is_receiving),       // Low when receive line is idle
+		.is_transmitting(is_transmitting), // Low when transmit line is idle
+		.recv_error(recv_error),           // Indicates error in receiving packet.
+		.is_receive_timeout(is_receive_timeout)
 	);
 
 	// CRC32 Module
@@ -152,6 +154,13 @@ module uart_comm (
 					if (length == msg_length) begin // finished, parse the packet
 						state <= STATE_PARSE;
 					end
+				end
+				else if (is_receive_timeout) begin
+					length <= 8'd1;
+					msg_length <= 8'd8; // 4 header + 4 for nonce
+					msg_type <= MSG_INVALID;
+					transmit_packet <= 1;
+					state <= STATE_IDLE;
 				end
 			end
 

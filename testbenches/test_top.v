@@ -61,6 +61,17 @@ module test_top ();
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 
+		// INVALID - tell fpga 8 will be sent, then send 7
+		uart_send_byte (8'h08); // message length
+		uart_send_byte (8'h00);
+		uart_send_byte (8'h00);
+		uart_send_byte (8'h00); // message type
+		uart_send_byte (8'hf9); // crc
+		uart_send_byte (8'hea); // crc
+		uart_send_byte (8'h98); // crc
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
+
 		// PUSH_JOB: header, 256 bits midstate hash, 96 bits time+merkleroot+difficulty, 32 bits min nonce, 32 bits max nonce
         // pushed in reverse order
 		uart_send_word (32'h0200003C); // byte reversed, ofc, length 60
@@ -80,8 +91,8 @@ module test_top ();
         uart_send_word (32'h814f1577); // crc 77154f81 
 
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
-
-		#130000;
+		
+		#230000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else
@@ -122,15 +133,27 @@ module test_top ();
 		$display ("PASSED: INFO\n");
 
 		// INVALID
-		$display ("Expecting INVALID...");
+		$display ("Expecting INVALID because the length we sent is too short for any known packet...");
 		uart_expect_byte (8'd08);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd01);
+		uart_delay; // there's nothing in the next 4 bytes, but they will be received
+		uart_delay;
+		uart_delay;
+		uart_delay;
+		$display ("PASSED: INVALID\n");
+
+		// INVALID - tell fpga 8 will be sent, then send 7
+		$display ("Expecting INVALID because of not enough packets...");
+		uart_expect_byte (8'd08);
 		uart_expect_byte (8'd00);
 		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
-		uart_expect_byte (8'd00);
+		uart_expect_byte (8'd01);
+		uart_delay; // there's nothing in the next 4 bytes, but they will be received
+		uart_delay;
+		uart_delay;
+		uart_delay;
 		$display ("PASSED: INVALID\n");
 
 		// ACK for push job
