@@ -155,7 +155,7 @@ module uart_comm (
 						state <= STATE_PARSE;
 					end
 				end
-				else if (is_receive_timeout) begin
+				else if (is_receive_timeout) begin // we're supposed to receive more, but the receive line has been idle for 4 bauds
 					length <= 8'd1;
 					msg_length <= 8'd8; // 4 header + 4 for nonce
 					msg_type <= MSG_INVALID;
@@ -238,11 +238,11 @@ module uart_comm (
 	always @ (posedge hash_clk) begin
 		meta_job <= current_job;
 		meta_new_work_flag <= {new_work_flag, meta_new_work_flag[2:1]}; // right shift
-		new_work <= meta_new_work_flag[2] ^ meta_new_work_flag[1]; // since the above is a non-blocking assignment, we check the 2,1 indexes
+		new_work <= meta_new_work_flag[1] ^ meta_new_work_flag[0]; // since the above is a non-blocking assignment, we xor the 2,1 indexes
 		{midstate, work_data, nonce_min, nonce_max} <= meta_job;
 
 		meta_golden_nonce_flag <= {new_golden_nonce, meta_golden_nonce_flag[2:1]}; // right shift
-		if (meta_golden_nonce_flag[2] ^ meta_golden_nonce_flag[1]) begin
+		if (meta_golden_nonce_flag[1] ^ meta_golden_nonce_flag[0]) begin
 			meta_new_golden_nonce <= 1'b1;
 		end
 

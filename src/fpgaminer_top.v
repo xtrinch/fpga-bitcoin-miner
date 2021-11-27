@@ -92,6 +92,7 @@ module fpgaminer_top (
 	always @ (posedge hash_clk)
 	begin
 		if (reset) begin
+			$display("Mining start, reset received");
 			wait_for_work <= 1'b0;
 			cnt <= 1'b0;
 			golden_nonce_found <= 1'b0;

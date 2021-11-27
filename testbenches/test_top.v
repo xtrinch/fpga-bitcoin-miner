@@ -27,7 +27,7 @@ module test_top ();
     top #(
 		.baud_rate(baud_rate),
 		.sys_clk_freq(sys_clk_freq),
-        .LOOP_LOG2(0)
+        .LOOP_LOG2(5)
 	) miner (
         .CLK(comm_clk),
         .RX(uut_rx),
@@ -92,7 +92,7 @@ module test_top ();
 
 		uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay; uart_delay;
 		
-		#230000;
+		#130000;
 		if (test_passed)
 			$display ("\n*** TEST PASSED ***\n");
 		else
