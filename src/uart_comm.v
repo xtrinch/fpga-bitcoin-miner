@@ -175,7 +175,9 @@ module uart_comm (
 					transmit_packet <= 1;
 
 					if (crc != 32'd0) begin
+						`ifdef SIM
 						$display("CRC is incorrect: %8h", crc);
+						`endif
 						msg_type <= MSG_RESEND;
 					end
 					else if (msg_type == MSG_INFO && msg_length == 8) begin // header length always 8
