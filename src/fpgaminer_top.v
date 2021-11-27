@@ -28,24 +28,24 @@ module fpgaminer_top (
 	// 66 respectively).
 	localparam [31:0] GOLDEN_NONCE_OFFSET = (32'd1 << (7 - LOOP_LOG2)) + 32'd1;
 
-	reg [511:0] data = 0; // a block header is 640 bits
-    reg [31:0] nonce;
+	reg [511:0] data = 512'd0; // a block header is 640 bits
+    reg [31:0] nonce = 32'd0;
 
 	wire [255:0] hash; // hash of the 2nd 511 bits of the block header
     wire [255:0] hash2; // hash of the first round of block header hash
 	// count and feedback are controlled by this unit so we don't have to
 	// calculate it twice for each hasher
-	reg [5:0] cnt = 5'd0; // where in the LOOP are we
+	reg [5:0] cnt = 6'd0; // where in the LOOP are we
 	wire feedback; // whether we're inside the same hash or a new one
 	reg wait_for_work = 1'b1;
 
 	// the hash of the first 511 bits where the header version n' stuff is
     // it is precomputed at the PC and sent to the miner 
-	reg [255:0] midstate_buf;
+	reg [255:0] midstate_buf = 256'd0;
     // the leftmost data of the right 511 bits of the header (a piece of the merkle root, time, target) 
-    reg [95:0] data_buf;
+    reg [95:0] data_buf = 95'd0;
 
-	wire sha_clk;
+	wire sha_clk = 1'd0;
 	assign sha_clk = wait_for_work ? 1'b0 : hash_clk;
 
     // sha256 stores binary in big endian (lowest address -> most significant value)
@@ -67,11 +67,12 @@ module fpgaminer_top (
 		.rx_state(256'h5be0cd191f83d9ab9b05688c510e527fa54ff53a3c6ef372bb67ae856a09e667), // initial hash values h7 downto h1
 		.rx_input({256'h0000010000000000000000000000000000000000000000000000000080000000, hash}), // 256bits of padding (length on the left and 1 padded on the right) + previous hash
 		.tx_hash(hash2)
-	);
+	);	assign sha_clk = wait_for_work ? 1'b0 : hash_clk;
+
 
 	//// Control Unit
-	reg feedback_d1; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
-	reg golden_nonce_found; // output is delayed for 1 cycle behind internal value
+	reg feedback_d1 = 1'd0; // value of feedback 2 cycles back (this means the hash from the previous cycle is valid)
+	reg golden_nonce_found = 1'd0; // output is delayed for 1 cycle behind internal value
 	wire [5:0] cnt_next;
 	wire [31:0] nonce_next;
 	wire feedback_next;
@@ -92,7 +93,6 @@ module fpgaminer_top (
 	always @ (posedge hash_clk)
 	begin
 		if (reset) begin
-			$display("Mining start, reset received");
 			wait_for_work <= 1'b0;
 			cnt <= 1'b0;
 			golden_nonce_found <= 1'b0;
