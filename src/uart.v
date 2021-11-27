@@ -57,7 +57,7 @@ module uart(
     output wire received,            // Indicates that a byte has been received
     output [7:0] rx_byte,       // Byte received
     output wire is_receiving,   // Low when receive line is idle.
-    output wire is_receive_timeout,   // Low when receive line is idle.
+    output wire is_receive_timeout,   // High when receive line is idle for 4 bauds
     output wire is_transmitting,// Low when transmit line is idle.
     output wire recv_error,      // Indicates error in receiving packet.
     output reg [3:0] rx_samples,
@@ -141,10 +141,8 @@ module uart(
 
     always @(posedge clk) begin
         baud_cnt <= baud_cnt + 1;
-        // $display(baud_cnt);
         // we'll get trapped in here once we're at one baud
         if (baud_cnt == one_baud_cnt) begin
-            // $display("One Baud");
             is_receiving_mem <= {is_receiving, is_receiving_mem[3:1]};
             baud_cnt <= 0;
         end
