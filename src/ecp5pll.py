@@ -1,3 +1,4 @@
+# source: https://gist.github.com/thoughtpolice/b1cec8d45f2741c3726c0cc2ac83d7f2
 # ecp5pll.py: yosys RPC frontend for generating ECP5 PLL modules on the fly
 #
 # Copyright (C) 2020      Austin Seipp
