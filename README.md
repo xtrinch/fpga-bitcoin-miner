@@ -2,6 +2,10 @@
 
 Adaptation of the https://github.com/progranism/Open-Source-FPGA-Bitcoin-Miner for the Lattice ECP5 evaluation board (LFE5UM5G-85F-8BG381). It has been tested on the actual board with the `pc-comm` script found in the `helpers directory`. Tests are provided for most of the modules.
 
+There's a great video on youtube explaining how sha256 works and it can serve as a great reference to this implementation: https://www.youtube.com/watch?v=f9EbD6iY9zI
+
+The implementation pipelines the 64 stages of sha256 calculation. If the calculations are fully unrolled, you will get one hash per clock cycle (ofcourse, you will get the first hash after 64 clock cycles, and one per cycle after that). Since bitcoin uses double sha256 hashing, this is done twice. The first part of the bitcoin header is pre-hashed and sent to the FPGA via the MSG_PUSH_JOB command. FPGA modifies the nonce and calculates the hash of the second part. The resulting hash is then hashed again. If the target is reached, we've successfully mined the block.
+
 ## Usage
 
 Test with `make test-top`, `make test-uart`, `make test-miner`. Tests for the top module and the miner module will mine the genesis block.
