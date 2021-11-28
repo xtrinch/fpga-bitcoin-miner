@@ -122,7 +122,6 @@ def main():
         'pool1',
         env,
         bus,
-        protocol_type=PoolV2,
         default_target=coins.Target.from_difficulty(
             100000, mining_params.diff_1_target
         ),

@@ -219,7 +219,6 @@ class Pool(AcceptingConnection):
         name: str,
         env: simpy.Environment,
         bus: EventBus,
-        protocol_type: ConnectionProcessor,
         default_target: coins.Target,
         extranonce2_size: int = 8,
         avg_pool_block_time: float = 60,
@@ -242,7 +241,7 @@ class Pool(AcceptingConnection):
         self.__generate_new_prev_hash()
         # Per connection message processors
         self.connection_processors = dict()
-        self.connection_processor_clz = protocol_type
+        self.connection_processor_clz = PoolV2
 
         # self.socket_process = env.process(self.__socket_process())
 
