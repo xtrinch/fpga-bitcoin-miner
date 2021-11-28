@@ -25,7 +25,7 @@ from .dataTypes import *
 
 """Stratum V2 messages."""
 from sim_primitives.protocol import Message
-from sim_primitives.stratum_v2.types import (
+from sim_primitives.types import (
     Hash,
     MerklePath,
     CoinBasePrefix,
