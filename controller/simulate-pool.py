@@ -28,7 +28,6 @@ import numpy as np
 import simpy
 from colorama import init, Fore
 from event_bus import EventBus
-import socket
 
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
@@ -129,58 +128,16 @@ def main():
         simulate_luck=not args.no_luck,
     )
 
-    sock = socket.socket()
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('localhost', 2000))
-    sock.listen(1)
-    print("Listening for connections")
-
-    conn, addr = sock.accept()
-    print('Accepted connection from', addr)
-
-    our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
-    private = x25519.X25519PrivateKey.from_private_bytes(our_private)
-
-    # prepare handshakestate objects for initiator and responder
-    our_handshakestate = HandshakeState(
-        SymmetricState(
-            CipherState(
-                # AESGCMCipher()
-                ChaChaPolyCipher()  # chacha20poly1305
-            ),
-            Blake2sHash(),
-        ),
-        X25519DH(),
-    )
-
-    pool_s = X25519DH().generate_keypair()
-    print(pool_s.__dict__)
-    print(pool_s.public.__dict__)
-    print(pool_s.private.__dict__)
-    our_handshakestate.initialize(NXHandshakePattern(), False, b"", s=pool_s)
-
-    # wait for empty message receive
-    ciphertext = conn.recv(4096)
-    frame, _ = Connection.unwrap(ciphertext)
-    message_buffer = bytearray()
-    our_handshakestate.read_message(frame, message_buffer)
-
-    # when we do, respond
-    ## in the buffer, there should be Signature Noise Message, but we 
-    ## obviously don't really know how to construct it, so we'll skip it for localhost
-    message_buffer = bytearray()
-    cipherstates = our_handshakestate.write_message(b"", message_buffer)
-    message_buffer = Connection.wrap(bytes(message_buffer))
-    num_sent = conn.send(message_buffer)  # rpc send
+    pool.make_handshake()
 
     print("Handshake done")
 
     # wait for open connection
-    ciphertext = conn.recv(4096)
+    ciphertext = pool.conn.recv(4096)
     print("Raw: Setup connection rcv")
     print(ciphertext)
     frame, _ = Connection.unwrap(ciphertext)
-    plaintext = cipherstates[0].decrypt_with_ad(b'', frame)
+    plaintext = pool.cipherstates[0].decrypt_with_ad(b'', frame)
     print("Decoded: Setup connection rcv")
     print(plaintext)
     
@@ -190,7 +147,7 @@ def main():
     
     if msg_type == 0x00:
         setup_connection_msg = SetupConnection.from_bytes(plaintext[6:]) # 0-6 is general frame data
-        pool.protocol_type.visit_setup_connection(setup_connection_msg)
+        pool.pool_v2.visit_setup_connection(setup_connection_msg)
     else:
         raise ValueError('Expected a setup connection')
 

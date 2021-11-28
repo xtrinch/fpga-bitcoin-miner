@@ -10,7 +10,15 @@ from sim_primitives.hashrate_meter import HashrateMeter
 from sim_primitives.protocol import ConnectionProcessor
 from sim_primitives.connection import Connection, AcceptingConnection
 import socket
-
+import base64
+from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
+from dissononce.processing.impl.handshakestate import HandshakeState
+from dissononce.processing.impl.symmetricstate import SymmetricState
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.cipher.chachapoly import ChaChaPolyCipher
+from dissononce.dh.x25519.x25519 import X25519DH
+from dissononce.hash.blake2s import Blake2sHash
+from cryptography.hazmat.primitives.asymmetric import x25519
 
 class MiningJob:
     """This class allows the simulation to track per job difficulty target for
@@ -228,7 +236,7 @@ class Pool(AcceptingConnection):
     ):
         """
 
-        :type protocol_type:
+        :type pool_v2:
         """
         self.name = name
         self.env = env
@@ -262,10 +270,56 @@ class Pool(AcceptingConnection):
         self.accepted_shares = 0
         self.stale_shares = 0
 
-        self.protocol_type = PoolV2(
+        self.pool_v2 = PoolV2(
             self
         );
 
+
+    def make_handshake(self):       
+        self.sock = socket.socket()
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(('localhost', 2000))
+        self.sock.listen(1)
+        print("Listening for connections")
+
+        self.conn, addr = self.sock.accept()
+        print('Accepted connection from', addr)
+
+        our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
+        private = x25519.X25519PrivateKey.from_private_bytes(our_private)
+
+        # prepare handshakestate objects for initiator and responder
+        our_handshakestate = HandshakeState(
+            SymmetricState(
+                CipherState(
+                    # AESGCMCipher()
+                    ChaChaPolyCipher()  # chacha20poly1305
+                ),
+                Blake2sHash(),
+            ),
+            X25519DH(),
+        )
+
+        pool_s = X25519DH().generate_keypair()
+        print(pool_s.__dict__)
+        print(pool_s.public.__dict__)
+        print(pool_s.private.__dict__)
+        our_handshakestate.initialize(NXHandshakePattern(), False, b"", s=pool_s)
+
+        # wait for empty message receive
+        ciphertext = self.conn.recv(4096)
+        frame, _ = Connection.unwrap(ciphertext)
+        message_buffer = bytearray()
+        our_handshakestate.read_message(frame, message_buffer)
+
+        # when we do, respond
+        ## in the buffer, there should be Signature Noise Message, but we 
+        ## obviously don't really know how to construct it, so we'll skip it for localhost
+        message_buffer = bytearray()
+        self.cipherstates = our_handshakestate.write_message(b"", message_buffer)
+        message_buffer = Connection.wrap(bytes(message_buffer))
+        num_sent = self.conn.send(message_buffer)  # rpc send
+        
     def reset_stats(self):
         self.accepted_submits = 0
         self.stale_submits = 0
@@ -274,8 +328,6 @@ class Pool(AcceptingConnection):
         self.stale_shares = 0
 
     def connect_in(self, connection: Connection):
-        if connection.port != 'stratum':
-            raise ValueError('{} port is not supported'.format(connection.port))
         # Build message processor for the new connection
         self.connection_processors[connection.uid] = PoolV2(
             self, connection
