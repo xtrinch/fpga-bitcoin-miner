@@ -28,9 +28,8 @@ from event_bus import EventBus
 
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
-from sim_primitives.miner import Miner
+from sim_primitives.miner import Miner, MinerV2
 from sim_primitives.pool import Pool
-from sim_primitives.stratum_v2.miner import MinerV2
 from sim_primitives.stratum_v2.pool import PoolV2
 from sim_primitives.connection import Connection
 
@@ -122,7 +121,6 @@ def main():
         env,
         bus,
         diff_1_target=mining_params.diff_1_target,
-        protocol_type=MinerV2,
         device_information=dict(
             speed_ghps=10000,
             vendor='Bitmain',

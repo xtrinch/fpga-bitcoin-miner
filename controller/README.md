@@ -4,6 +4,10 @@ This is the part that connects to the pool and gives work to the miner.
 
 # Running
 
+Create virtualenv with `python3 -m venv env`.
+Run `source env/bin/activate`.
+Run `pip install -r requirements.txt`.
+
 Run pool with `python3 pool.py` and miner with `python3 miner.py`.
 
 # Overview
