@@ -33,8 +33,7 @@ import socket
 import sim_primitives.coins as coins
 import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner, MinerV2
-from sim_primitives.pool import Pool
-from sim_primitives.stratum_v2.pool import PoolV2
+from sim_primitives.pool import Pool, PoolV2
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState

@@ -199,7 +199,7 @@ from sim_primitives.stratum_v2.messages import (
     SubmitSharesSuccess,
     SubmitSharesError,
 )
-from sim_primitives.stratum_v2.pool import PoolMiningChannel
+from sim_primitives.pool import PoolMiningChannel
 from sim_primitives.stratum_v2.types import ProtocolType, DownstreamConnectionFlags
 from sim_primitives.protocol import ConnectionProcessor
 
