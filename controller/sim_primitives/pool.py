@@ -241,7 +241,6 @@ class Pool(AcceptingConnection):
         self.__generate_new_prev_hash()
         # Per connection message processors
         self.connection_processors = dict()
-        self.connection_processor_clz = PoolV2
 
         # self.socket_process = env.process(self.__socket_process())
 
@@ -263,7 +262,7 @@ class Pool(AcceptingConnection):
         self.accepted_shares = 0
         self.stale_shares = 0
 
-        self.protocol_type = self.connection_processor_clz(
+        self.protocol_type = PoolV2(
             self
         );
 
@@ -278,7 +277,7 @@ class Pool(AcceptingConnection):
         if connection.port != 'stratum':
             raise ValueError('{} port is not supported'.format(connection.port))
         # Build message processor for the new connection
-        self.connection_processors[connection.uid] = self.connection_processor_clz(
+        self.connection_processors[connection.uid] = PoolV2(
             self, connection
         )
 
