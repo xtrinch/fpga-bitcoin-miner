@@ -4,11 +4,11 @@ Adaptation of the https://github.com/progranism/Open-Source-FPGA-Bitcoin-Miner f
 
 ## Usage
 
-Manual build with `make`.
+Test with `make test-top`, `make test-uart`, `make test-miner`. Tests for the top module and the miner module will mine the genesis block.
+
+Build with `make`.
 
 Flash the ECP5evn with `make program`.
-
-Test with `make test-top`, `make test-uart`, `make test-miner`. Tests for the top module and the miner module will mine the genesis block.
 
 Compile C code in `helpers` directory with `gcc pc-comm.c -o pc-comm`  and run with `./pc-comm` to observe serial packets.
 
