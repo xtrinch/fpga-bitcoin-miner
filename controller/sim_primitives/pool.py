@@ -7,7 +7,7 @@ from event_bus import EventBus
 
 import sim_primitives.coins as coins
 from sim_primitives.hashrate_meter import HashrateMeter
-from sim_primitives.protocol import UpstreamConnectionProcessor
+from sim_primitives.protocol import ConnectionProcessor
 from sim_primitives.connection import Connection, AcceptingConnection
 import socket
 
@@ -219,7 +219,7 @@ class Pool(AcceptingConnection):
         name: str,
         env: simpy.Environment,
         bus: EventBus,
-        protocol_type: UpstreamConnectionProcessor,
+        protocol_type: ConnectionProcessor,
         default_target: coins.Target,
         extranonce2_size: int = 8,
         avg_pool_block_time: float = 60,
@@ -429,7 +429,7 @@ class Pool(AcceptingConnection):
 """
 import sim_primitives.coins as coins
 from sim_primitives.pool import MiningSession, Pool
-from sim_primitives.protocol import UpstreamConnectionProcessor
+from sim_primitives.protocol import ConnectionProcessor
 from sim_primitives.messages import *
 from sim_primitives.types import (
     DownstreamConnectionFlags,
@@ -526,7 +526,7 @@ class ConnectionConfig:
         )
 
 
-class PoolV2(UpstreamConnectionProcessor):
+class PoolV2(ConnectionProcessor):
     """Processes all messages on 1 connection
 
     """
@@ -537,6 +537,12 @@ class PoolV2(UpstreamConnectionProcessor):
         # self._mining_channel_registry = ChannelRegistry(connection.uid)
         super().__init__(pool.name, pool.env, pool.bus, connection)
 
+    def _send_msg(self, msg):
+        self.connection.incoming.put(msg)
+
+    def _recv_msg(self):
+        return self.connection.outgoing.get()
+    
     def terminate(self):
         super().terminate()
         for channel in self._mining_channel_registry.channels:

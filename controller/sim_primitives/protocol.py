@@ -120,20 +120,3 @@ class ConnectionProcessor:
             except simpy.Interrupt:
                 self._emit_aux_msg_on_bus('DISCONNECTED')
                 break  # terminate the event loop
-
-
-class UpstreamConnectionProcessor(ConnectionProcessor):
-    """Processes messages flowing through an upstream node
-
-    This class only determines the direction in which it accesses the connection.
-    """
-
-    def _send_msg(self, msg):
-        self.connection.incoming.put(msg)
-
-    def _recv_msg(self):
-        return self.connection.outgoing.get()
-
-    @abstractmethod
-    def _on_invalid_message(self, msg):
-        pass
