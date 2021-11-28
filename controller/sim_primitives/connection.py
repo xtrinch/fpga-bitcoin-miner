@@ -22,17 +22,6 @@ def gen_uid(env):
     hashids = Hashids()
     return hashids.encode(int(env.now * 16), random.randint(0, 16777216))
 
-
-class AcceptingConnection(ABC):
-    @abstractmethod
-    def connect_in(self, connection):
-        pass
-
-    @abstractmethod
-    def disconnect(self, connection):
-        pass
-
-
 class ConnectionStore:
     """This class represents the propagation network connection."""
 

@@ -8,7 +8,7 @@ from event_bus import EventBus
 import sim_primitives.coins as coins
 from sim_primitives.hashrate_meter import HashrateMeter
 from sim_primitives.protocol import ConnectionProcessor
-from sim_primitives.connection import Connection, AcceptingConnection
+from sim_primitives.connection import Connection
 import socket
 import base64
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
@@ -19,6 +19,17 @@ from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
 from cryptography.hazmat.primitives.asymmetric import x25519
+
+"""Stratum V2 pool implementation
+
+"""
+import sim_primitives.coins as coins
+from sim_primitives.protocol import ConnectionProcessor
+from sim_primitives.messages import *
+from sim_primitives.types import (
+    DownstreamConnectionFlags,
+    UpstreamConnectionFlags,
+)
 
 class MiningJob:
     """This class allows the simulation to track per job difficulty target for
@@ -205,7 +216,95 @@ class MiningSession:
         self.bus.emit(self.name, self.env.now, self.owner, msg)
 
 
-class Pool(AcceptingConnection):
+class MiningChannel:
+    def __init__(self, cfg, conn_uid, channel_id):
+        """
+        :param cfg: configuration is represented by the full OpenStandardMiningChannel or
+        OpenStandardMiningChannelSuccess message depending on which end of the channel we are on
+        :param conn_uid: backlink to the connection this channel is on
+        :param channel_id: unique identifier for the channel
+        """
+        self.cfg = cfg
+        self.conn_uid = conn_uid
+        self.id = channel_id
+
+    def set_id(self, channel_id):
+        self.id = channel_id
+
+
+class PoolMiningChannel(MiningChannel):
+    """This mining channel contains mining session and future job.
+
+    Currently, the channel holds only 1 future job.
+    """
+
+    def __init__(self, session, *args, **kwargs):
+        """
+        :param session: optional mining session process (TODO: review if this is the right place)
+        """
+        self.future_job = None
+        self.session = session
+        super().__init__(*args, **kwargs)
+
+    def terminate(self):
+        self.session.terminate()
+
+    def set_session(self, session):
+        self.session = session
+
+    def take_future_job(self):
+        """Takes future job from the channel."""
+        assert (
+            self.future_job is not None
+        ), 'BUG: Attempt to take a future job from channel: {}'.format(self.id)
+        future_job = self.future_job
+        self.future_job = None
+        return future_job
+
+    def add_future_job(self, job):
+        """Stores future job ready for mining should a new block be found"""
+        assert (
+            self.future_job is None
+        ), 'BUG: Attempt to overwrite an existing future job: {}'.format(self.id)
+        self.future_job = job
+
+
+class ChannelRegistry:
+    """Keeps track of channels on individual connection"""
+
+    def __init__(self, conn_uid):
+        self.conn_uid = conn_uid
+        self.channels = []
+
+    def append(self, channel):
+        """Simplify registering new channels"""
+        new_channel_id = len(self.channels)
+        channel.set_id(new_channel_id)
+        self.channels.append(channel)
+
+    def get_channel(self, channel_id):
+        if channel_id < len(self.channels):
+            return self.channels[channel_id]
+        else:
+            return None
+
+
+class ConnectionConfig:
+    """Stratum V2 connection configuration.
+
+    For now, it is sufficient to record the SetupConnection to have full connection configuration available.
+    """
+
+    def __init__(self, msg: SetupConnection):
+        self.setup_msg = msg
+
+    @property
+    def requires_version_rolling(self):
+        return (
+            DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING in self.setup_msg.flags
+        )
+
+class Pool(ConnectionProcessor):
     """Represents a generic mining pool.
 
     It handles connections and delegates work to actual protocol specific object
@@ -270,11 +369,6 @@ class Pool(AcceptingConnection):
         self.accepted_shares = 0
         self.stale_shares = 0
 
-        self.pool_v2 = PoolV2(
-            self
-        );
-
-
     def make_handshake(self):       
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -326,12 +420,6 @@ class Pool(AcceptingConnection):
         self.rejected_submits = 0
         self.accepted_shares = 0
         self.stale_shares = 0
-
-    def connect_in(self, connection: Connection):
-        # Build message processor for the new connection
-        self.connection_processors[connection.uid] = PoolV2(
-            self, connection
-        )
 
     def disconnect(self, connection: Connection):
         if connection.uid not in self.connection_processors:
@@ -452,143 +540,8 @@ class Pool(AcceptingConnection):
         print("GOING TO RUN POOL")
         pass
 
-# Copyright (C) 2019  Braiins Systems s.r.o.
-#
-# This file is part of Braiins Open-Source Initiative (BOSI).
-#
-# BOSI is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Please, keep in mind that we may also license BOSI or any part thereof
-# under a proprietary license. For more information on the terms and conditions
-# of such proprietary license or if you have any other questions, please
-# contact us at opensource@braiins.com.
-
-"""Stratum V2 pool implementation
-
-"""
-import sim_primitives.coins as coins
-from sim_primitives.pool import MiningSession, Pool
-from sim_primitives.protocol import ConnectionProcessor
-from sim_primitives.messages import *
-from sim_primitives.types import (
-    DownstreamConnectionFlags,
-    UpstreamConnectionFlags,
-)
-
-
-class MiningChannel:
-    def __init__(self, cfg, conn_uid, channel_id):
-        """
-        :param cfg: configuration is represented by the full OpenStandardMiningChannel or
-        OpenStandardMiningChannelSuccess message depending on which end of the channel we are on
-        :param conn_uid: backlink to the connection this channel is on
-        :param channel_id: unique identifier for the channel
-        """
-        self.cfg = cfg
-        self.conn_uid = conn_uid
-        self.id = channel_id
-
-    def set_id(self, channel_id):
-        self.id = channel_id
-
-
-class PoolMiningChannel(MiningChannel):
-    """This mining channel contains mining session and future job.
-
-    Currently, the channel holds only 1 future job.
-    """
-
-    def __init__(self, session, *args, **kwargs):
-        """
-        :param session: optional mining session process (TODO: review if this is the right place)
-        """
-        self.future_job = None
-        self.session = session
-        super().__init__(*args, **kwargs)
-
-    def terminate(self):
-        self.session.terminate()
-
-    def set_session(self, session):
-        self.session = session
-
-    def take_future_job(self):
-        """Takes future job from the channel."""
-        assert (
-            self.future_job is not None
-        ), 'BUG: Attempt to take a future job from channel: {}'.format(self.id)
-        future_job = self.future_job
-        self.future_job = None
-        return future_job
-
-    def add_future_job(self, job):
-        """Stores future job ready for mining should a new block be found"""
-        assert (
-            self.future_job is None
-        ), 'BUG: Attempt to overwrite an existing future job: {}'.format(self.id)
-        self.future_job = job
-
-
-class ChannelRegistry:
-    """Keeps track of channels on individual connection"""
-
-    def __init__(self, conn_uid):
-        self.conn_uid = conn_uid
-        self.channels = []
-
-    def append(self, channel):
-        """Simplify registering new channels"""
-        new_channel_id = len(self.channels)
-        channel.set_id(new_channel_id)
-        self.channels.append(channel)
-
-    def get_channel(self, channel_id):
-        if channel_id < len(self.channels):
-            return self.channels[channel_id]
-        else:
-            return None
-
-
-class ConnectionConfig:
-    """Stratum V2 connection configuration.
-
-    For now, it is sufficient to record the SetupConnection to have full connection configuration available.
-    """
-
-    def __init__(self, msg: SetupConnection):
-        self.setup_msg = msg
-
-    @property
-    def requires_version_rolling(self):
-        return (
-            DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING in self.setup_msg.flags
-        )
-
-
-class PoolV2(ConnectionProcessor):
-    """Processes all messages on 1 connection
-
-    """
-
-    def __init__(self, pool: Pool, connection = None):
-        self.pool = pool
-        self.connection_config = None
-        # self._mining_channel_registry = ChannelRegistry(connection.uid)
-        super().__init__(pool.name, pool.env, pool.bus, connection)
-
     def _send_msg(self, msg):
-        self.connection.incoming.put(msg)
+        self.conn.send(msg)
 
     def _recv_msg(self):
         return self.connection.outgoing.get()
@@ -612,21 +565,16 @@ class PoolV2(ConnectionProcessor):
         # if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
         response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
 
-        if self.connection_config is None:
-            self.connection_config = ConnectionConfig(msg)
-            # TODO: implement version and flag handling
-            self._send_msg(
-                SetupConnectionSuccess(
-                    used_version=min(msg.min_version, msg.max_version),
-                    flags=response_flags,
-                )
+        self._send_msg(
+            SetupConnectionSuccess(
+                used_version=min(msg.min_version, msg.max_version),
+                flags=response_flags,
             )
-        else:
-            self._send_msg(SetupConnectionError('Connection can only be setup once'))
+        )
 
     def visit_open_standard_mining_channel(self, msg: OpenStandardMiningChannel):
         # Open only channels compatible with this node's configuration
-        if msg.max_target <= self.pool.default_target.diff_1_target:
+        if msg.max_target <= self.default_target.diff_1_target:
             # Create the channel and build back-links from session to channel and from
             # channel to connection
             mining_channel = PoolMiningChannel(
@@ -637,7 +585,7 @@ class PoolV2(ConnectionProcessor):
 
             # TODO use partial to bind the mining channel to the _on_vardiff_change and eliminate the need for the
             #  backlink
-            session = self.pool.new_mining_session(
+            session = self.new_mining_session(
                 owner=mining_channel, on_vardiff_change=self._on_vardiff_change
             )
             mining_channel.set_session(session)
@@ -719,7 +667,7 @@ class PoolV2(ConnectionProcessor):
             self._send_msg(resp_msg)
             self.__emit_channel_msg_on_bus(resp_msg)
 
-        self.pool.process_submit(
+        self.process_submit(
             msg.job_id, channel.session, on_accept=on_accept, on_reject=on_reject
         )
 
@@ -776,7 +724,7 @@ class PoolV2(ConnectionProcessor):
         return SetNewPrevHash(
             channel_id=channel_id,
             job_id=future_job_id,
-            prev_hash=self.pool.prev_hash,
+            prev_hash=self.prev_hash,
             min_ntime=self.env.now,
             nbits=None,
         )
