@@ -163,7 +163,7 @@ import sim_primitives.coins as coins
 from sim_primitives.miner import Miner
 from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningJob
-from sim_primitives.stratum_v2.messages import (
+from sim_primitives.messages import (
     SetupConnection,
     SetupConnectionSuccess,
     SetupConnectionError,

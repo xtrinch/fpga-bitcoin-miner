@@ -1,7 +1,7 @@
 """Protocol state related classes for Stratum V2
 
 """
-from sim_primitives.stratum_v2.messages import SetupConnection, SetupConnectionSuccess
+from sim_primitives.messages import SetupConnection, SetupConnectionSuccess
 
 
 class ConnectionConfig:

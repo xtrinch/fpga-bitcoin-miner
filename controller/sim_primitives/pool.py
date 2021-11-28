@@ -430,7 +430,7 @@ class Pool(AcceptingConnection):
 import sim_primitives.coins as coins
 from sim_primitives.pool import MiningSession, Pool
 from sim_primitives.protocol import UpstreamConnectionProcessor
-from sim_primitives.stratum_v2.messages import *
+from sim_primitives.messages import *
 from sim_primitives.types import (
     DownstreamConnectionFlags,
     UpstreamConnectionFlags,

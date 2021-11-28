@@ -43,7 +43,7 @@ from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
 from cryptography.hazmat.primitives.asymmetric import x25519
 from sim_primitives.connection import Connection
-from sim_primitives.stratum_v2.messages import SetupConnection, SetupConnectionSuccess
+from sim_primitives.messages import SetupConnection, SetupConnectionSuccess
 
 init()
 bus = EventBus()
