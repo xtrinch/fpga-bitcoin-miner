@@ -36,6 +36,7 @@ Both should return either pong or the info you can find harcoded in the `uart_co
 
 You can modify how unrolled the SHA calculations are with parameter LOOP_LOG2 [0, 5]. The larger the value, the smaller and slower the program.
 
+```
 LOOP_LOG2=3
 Info: Logic utilisation before packing:
 Info:     Total LUT4s:     32001/83640    38%
@@ -45,7 +46,9 @@ Info:           RAM LUTs:      0/41820     0%
 Info:          RAMW LUTs:      0/20910     0%
 
 Info:      Total DFFs:     30482/83640    36%
+```
 
+```
 LOOP_LOG2=2
 Info: Logic utilisation before packing:
 Info:     Total LUT4s:     61869/83640    73%
@@ -55,6 +58,7 @@ Info:           RAM LUTs:      0/41820     0%
 Info:          RAMW LUTs:      0/20910     0%
 
 Info:      Total DFFs:     55056/83640    65%
+```
 
 LOOP_LOG2=1 and LOOP_LOG2=0 do not fit on the board.
 
