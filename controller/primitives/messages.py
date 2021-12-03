@@ -3,7 +3,7 @@ from .dataTypes import *
 import stringcase
 
 """Stratum V2 messages."""
-from sim_primitives.types import (
+from primitives.types import (
     Hash,
     MerklePath,
     CoinBasePrefix,

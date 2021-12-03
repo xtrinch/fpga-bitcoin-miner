@@ -29,10 +29,10 @@ import simpy
 from colorama import init, Fore
 from event_bus import EventBus
 
-import sim_primitives.coins as coins
-import sim_primitives.mining_params as mining_params
-from sim_primitives.miner import Miner, MinerV2
-from sim_primitives.pool import Pool
+import primitives.coins as coins
+import primitives.mining_params as mining_params
+from primitives.miner import Miner, MinerV2
+from primitives.pool import Pool
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState
@@ -41,8 +41,8 @@ from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
 from cryptography.hazmat.primitives.asymmetric import x25519
-from sim_primitives.connection import Connection
-from sim_primitives.messages import SetupConnection, SetupConnectionSuccess
+from primitives.connection import Connection
+from primitives.messages import SetupConnection, SetupConnectionSuccess
 
 init()
 bus = EventBus()

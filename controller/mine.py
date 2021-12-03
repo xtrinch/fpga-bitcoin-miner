@@ -26,11 +26,11 @@ import simpy
 from colorama import init, Fore
 from event_bus import EventBus
 
-import sim_primitives.coins as coins
-import sim_primitives.mining_params as mining_params
-from sim_primitives.miner import Miner, MinerV2
-from sim_primitives.pool import Pool
-from sim_primitives.connection import Connection
+import primitives.coins as coins
+import primitives.mining_params as mining_params
+from primitives.miner import Miner, MinerV2
+from primitives.pool import Pool
+from primitives.connection import Connection
 import asyncio # new module 
 import time
 

@@ -5,8 +5,8 @@ from abc import abstractmethod
 import simpy
 from event_bus import EventBus
 
-from sim_primitives.connection import Connection
-from sim_primitives.messages import SetupConnection, SetupConnectionSuccess, Message
+from primitives.connection import Connection
+from primitives.messages import SetupConnection, SetupConnectionSuccess, Message
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""

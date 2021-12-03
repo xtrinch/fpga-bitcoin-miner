@@ -2,18 +2,18 @@ import numpy as np
 import simpy
 from event_bus import EventBus
 
-import sim_primitives.coins as coins
-from sim_primitives.hashrate_meter import HashrateMeter
-from sim_primitives.connection import Connection
-from sim_primitives.pool import MiningSession, MiningJob, Pool
-from sim_primitives.protocol import ConnectionProcessor
+import primitives.coins as coins
+from primitives.hashrate_meter import HashrateMeter
+from primitives.connection import Connection
+from primitives.pool import MiningSession, MiningJob, Pool
+from primitives.protocol import ConnectionProcessor
 
 import enum
 
-import sim_primitives.coins as coins
-from sim_primitives.connection import Connection
-from sim_primitives.pool import MiningJob
-from sim_primitives.messages import (
+import primitives.coins as coins
+from primitives.connection import Connection
+from primitives.pool import MiningJob
+from primitives.messages import (
     SetupConnection,
     SetupConnectionSuccess,
     SetupConnectionError,
@@ -27,8 +27,8 @@ from sim_primitives.messages import (
     SubmitSharesSuccess,
     SubmitSharesError,
 )
-from sim_primitives.pool import PoolMiningChannel
-from sim_primitives.types import ProtocolType, DownstreamConnectionFlags
+from primitives.pool import PoolMiningChannel
+from primitives.types import ProtocolType, DownstreamConnectionFlags
 
 
 class Miner(object):

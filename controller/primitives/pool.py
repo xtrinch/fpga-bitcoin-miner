@@ -5,10 +5,10 @@ import numpy as np
 import simpy
 from event_bus import EventBus
 
-import sim_primitives.coins as coins
-from sim_primitives.hashrate_meter import HashrateMeter
-from sim_primitives.protocol import ConnectionProcessor
-from sim_primitives.connection import Connection
+import primitives.coins as coins
+from primitives.hashrate_meter import HashrateMeter
+from primitives.protocol import ConnectionProcessor
+from primitives.connection import Connection
 import socket
 import base64
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
@@ -23,10 +23,10 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 """Stratum V2 pool implementation
 
 """
-import sim_primitives.coins as coins
-from sim_primitives.protocol import ConnectionProcessor
-from sim_primitives.messages import *
-from sim_primitives.types import (
+import primitives.coins as coins
+from primitives.protocol import ConnectionProcessor
+from primitives.messages import *
+from primitives.types import (
     DownstreamConnectionFlags,
     UpstreamConnectionFlags,
 )
