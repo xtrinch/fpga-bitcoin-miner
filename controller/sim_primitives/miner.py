@@ -8,6 +8,29 @@ from sim_primitives.connection import Connection
 from sim_primitives.pool import MiningSession, MiningJob, Pool
 from sim_primitives.protocol import ConnectionProcessor
 
+import enum
+
+import sim_primitives.coins as coins
+from sim_primitives.connection import Connection
+from sim_primitives.pool import MiningJob
+from sim_primitives.messages import (
+    SetupConnection,
+    SetupConnectionSuccess,
+    SetupConnectionError,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    OpenMiningChannelError,
+    SetNewPrevHash,
+    SetTarget,
+    NewMiningJob,
+    SubmitSharesStandard,
+    SubmitSharesSuccess,
+    SubmitSharesError,
+)
+from sim_primitives.pool import PoolMiningChannel
+from sim_primitives.types import ProtocolType, DownstreamConnectionFlags
+
+
 class Miner(object):
     def __init__(
         self,
@@ -25,7 +48,7 @@ class Miner(object):
         self.bus = bus
         self.diff_1_target = diff_1_target
         self.device_information = device_information
-        self.connection_processor = None
+        self.miner = None
         self.work_meter = HashrateMeter(env)
         self.mine_proc = None
         self.job_uid = None
@@ -59,15 +82,17 @@ class Miner(object):
                 self.__emit_hashrate_msg_on_bus(job, avg_time)
                 self.__emit_aux_msg_on_bus('solution found for job {}'.format(job.uid))
 
-                self.connection_processor.submit_mining_solution(job)
+                self.miner.submit_mining_solution(job)
 
     def connect_to_pool(self, connection: Connection):
-        assert self.connection_processor is None, 'BUG: miner is already connected'
+        assert self.miner is None, 'BUG: miner is already connected'
         
         connection.connect_to()
 
         # Intializes MinerV2 instance
-        self.connection_processor = MinerV2(self, connection)
+        self.miner = MinerV2(self, connection)
+        self.miner.setup_connection()
+        
         self.__emit_aux_msg_on_bus('Connecting to pool {}:{}'.format(connection.pool_host, connection.pool_port))
 
     def disconnect(self):
@@ -75,9 +100,9 @@ class Miner(object):
         if self.mine_proc:
             self.mine_proc.interrupt()
         # Mining is shutdown, terminate any protocol message processing
-        self.connection_processor.terminate()
-        self.connection_processor.disconnect()
-        self.connection_processor = None
+        self.miner.terminate()
+        self.miner.disconnect()
+        self.miner = None
 
     def new_mining_session(self, diff_target: coins.Target):
         """Creates a new mining session"""
@@ -112,8 +137,8 @@ class Miner(object):
         self.bus.emit(
             self.name,
             self.env.now,
-            self.connection_processor.connection.uid
-            if self.connection_processor
+            self.miner.connection.uid
+            if self.miner
             else None,
             msg,
         )
@@ -133,67 +158,8 @@ class Miner(object):
             )
         )
 
-# Copyright (C) 2019  Braiins Systems s.r.o.
-#
-# This file is part of Braiins Open-Source Initiative (BOSI).
-#
-# BOSI is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Please, keep in mind that we may also license BOSI or any part thereof
-# under a proprietary license. For more information on the terms and conditions
-# of such proprietary license or if you have any other questions, please
-# contact us at opensource@braiins.com.
-
-"""V2 header only miner"""
-
-import enum
-
-import sim_primitives.coins as coins
-from sim_primitives.miner import Miner
-from sim_primitives.connection import Connection
-from sim_primitives.pool import MiningJob
-from sim_primitives.messages import (
-    SetupConnection,
-    SetupConnectionSuccess,
-    SetupConnectionError,
-    OpenStandardMiningChannel,
-    OpenStandardMiningChannelSuccess,
-    OpenMiningChannelError,
-    SetNewPrevHash,
-    SetTarget,
-    NewMiningJob,
-    SubmitSharesStandard,
-    SubmitSharesSuccess,
-    SubmitSharesError,
-)
-from sim_primitives.pool import PoolMiningChannel
-from sim_primitives.types import ProtocolType, DownstreamConnectionFlags
-from sim_primitives.protocol import ConnectionProcessor
-
-
 # TODO: Move MiningChannel and session from Pool
 class MinerV2(ConnectionProcessor):
-    class ConnectionConfig:
-        """Stratum V2 connection configuration.
-
-        For now, it is sufficient to record the SetupConnectionSuccess to have full
-        connection configuration available.
-        """
-
-        def __init__(self, msg: SetupConnectionSuccess):
-            self.setup_msg = msg
-
     class States(enum.Enum):
         INIT = 0
         CONNECTION_SETUP = 1
@@ -203,6 +169,9 @@ class MinerV2(ConnectionProcessor):
         self.state = self.States.INIT
         self.channel = None
         super().__init__(miner.name, miner.env, miner.bus, connection)
+        self.connection_config = None
+
+    def setup_connection(self):
         # Initiate V2 protocol setup
         # TODO-DOC: specification should categorize downstream and upstream flags.
         #  PubKey handling is also not precisely defined yet
@@ -213,8 +182,8 @@ class MinerV2(ConnectionProcessor):
                 max_version=2,
                 min_version=2,
                 flags=0,  # TODO:
-                endpoint_host=connection.pool_host,
-                endpoint_port=connection.pool_port,
+                endpoint_host=self.connection.pool_host,
+                endpoint_port=self.connection.pool_port,
                 vendor=self.miner.device_information.get('vendor', 'unknown'),
                 hardware_version=self.miner.device_information.get(
                     'hardware_version', 'unknown'
@@ -223,8 +192,23 @@ class MinerV2(ConnectionProcessor):
                 device_id=self.miner.device_information.get('device_id', ''),
             )
         )
-        self.connection_config = None
+        print("Going to receive setup connection success")
+        # we are expecting setup connection success
+        self.receive_one()
+    
+    # def receive_one(self):
+    #     print("ets?")
+        
+    class ConnectionConfig:
+        """Stratum V2 connection configuration.
 
+        For now, it is sufficient to record the SetupConnectionSuccess to have full
+        connection configuration available.
+        """
+
+        def __init__(self, msg: SetupConnectionSuccess):
+            self.setup_msg = msg
+            
     def _recv_msg(self):
         return self.connection.incoming.get()
 

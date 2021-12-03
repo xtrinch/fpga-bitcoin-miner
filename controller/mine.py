@@ -31,11 +31,13 @@ import sim_primitives.mining_params as mining_params
 from sim_primitives.miner import Miner, MinerV2
 from sim_primitives.pool import Pool
 from sim_primitives.connection import Connection
+import asyncio # new module 
+import time
 
 init()
 bus = EventBus()
-
-def main():
+        
+def connect():
     np.random.seed(123)
     parser = argparse.ArgumentParser(
         prog='mine.py',
@@ -132,13 +134,24 @@ def main():
 
     print("Going to connect to pool")
     m1.connect_to_pool(conn1)
+
+async def mine():
+    while True:
+        print('.')
+        await asyncio.sleep(2.5)
+       
+async def listen():
+    while True:
+        print(',')
+        await asyncio.sleep(2.5)
     
-    env.run(until=args.limit)
-
-    if not args.plain_output:
-        print(start_message)
-
-    print('simulation finished!')
-
+async def main():
+   await asyncio.gather(
+     mine(),
+     listen(),
+   )
+        
 if __name__ == '__main__':
-    main()
+    while True:
+        connect()
+        asyncio.run(main())

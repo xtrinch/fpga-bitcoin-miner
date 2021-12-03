@@ -1,8 +1,8 @@
 import typing
 from .dataTypes import *
+import stringcase
 
 """Stratum V2 messages."""
-from sim_primitives.protocol import Message
 from sim_primitives.types import (
     Hash,
     MerklePath,
@@ -10,6 +10,33 @@ from sim_primitives.types import (
     CoinBaseSuffix,
 )
 
+class Message:
+    """Generic message that accepts visitors and dispatches their processing."""
+
+    class VisitorMethodNotImplemented(Exception):
+        """Custom handling to report if visitor method is missing"""
+
+        def __init__(self, method_name):
+            self.method_name = method_name
+
+        def __str__(self):
+            return self.method_name
+
+    def __init__(self, req_id=None):
+        self.req_id = req_id
+
+    def accept(self, visitor):
+        """Call visitor method based on the actual message type."""
+        method_name = 'visit_{}'.format(stringcase.snakecase(type(self).__name__))
+        try:
+            visit_method = getattr(visitor, method_name)
+        except AttributeError:
+            raise self.VisitorMethodNotImplemented(method_name)
+
+        visit_method(self)
+
+    def _format(self, content):
+        return '{}({})'.format(type(self).__name__, content)
 
 class ChannelMessage(Message):
     """Message specific for a channel identified by its channel_id"""
@@ -93,10 +120,32 @@ class SetupConnection(Message):
         return msg
 
 class SetupConnectionSuccess(Message):
-    def __init__(self, used_version: int, flags: set):
+    def __init__(self, used_version: int, flags: int):
         self.used_version = used_version
-        self.flags = set(flags)
+        self.flags = flags
         super().__init__()
+        
+    def to_bytes(self):
+        used_version = U16(self.used_version)
+        flags = U32(self.flags)
+        payload = used_version+flags
+    
+        frame = FRAME(0x0abc,"SetupConnectionSuccess",payload)
+        return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        used_version = int.from_bytes(bytes[0:1], byteorder='little')
+        flags = int.from_bytes(bytes[2:5], byteorder='little')
+        
+        print(used_version)
+        print(flags)
+        
+        msg = SetupConnectionSuccess(
+            used_version=used_version,
+            flags=flags,
+        )
+        return msg
 
 
 class SetupConnectionError(Message):

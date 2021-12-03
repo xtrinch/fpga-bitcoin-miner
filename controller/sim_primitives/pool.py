@@ -559,17 +559,17 @@ class Pool(ConnectionProcessor):
         pass
 
     def visit_setup_connection(self, msg: SetupConnection):
-        response_flags = set()
+        # response_flags = set()
 
         # arbitrary for now
         # if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
-        response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
+        # response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
 
         self._send_msg(
             SetupConnectionSuccess(
                 used_version=min(msg.min_version, msg.max_version),
-                flags=response_flags,
-            )
+                flags=0,
+            ).to_bytes()
         )
 
     def visit_open_standard_mining_channel(self, msg: OpenStandardMiningChannel):

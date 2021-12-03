@@ -6,36 +6,7 @@ import simpy
 from event_bus import EventBus
 
 from sim_primitives.connection import Connection
-
-
-class Message:
-    """Generic message that accepts visitors and dispatches their processing."""
-
-    class VisitorMethodNotImplemented(Exception):
-        """Custom handling to report if visitor method is missing"""
-
-        def __init__(self, method_name):
-            self.method_name = method_name
-
-        def __str__(self):
-            return self.method_name
-
-    def __init__(self, req_id=None):
-        self.req_id = req_id
-
-    def accept(self, visitor):
-        """Call visitor method based on the actual message type."""
-        method_name = 'visit_{}'.format(stringcase.snakecase(type(self).__name__))
-        try:
-            visit_method = getattr(visitor, method_name)
-        except AttributeError:
-            raise self.VisitorMethodNotImplemented(method_name)
-
-        visit_method(self)
-
-    def _format(self, content):
-        return '{}({})'.format(type(self).__name__, content)
-
+from sim_primitives.messages import SetupConnection, SetupConnectionSuccess, Message
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -100,10 +71,29 @@ class ConnectionProcessor:
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
         self._emit_aux_msg_on_bus('{}: {}'.format(log_msg, msg))
 
+    def receive_one(self):
+        # Receive process for a particular connection dispatches each received message
+        print("RCV one?")
+        try:
+            raw = self.connection.sock.recv(4096)
+            msg = SetupConnectionSuccess.from_bytes(raw)
+            print('INCOMING', msg)
+
+            try:
+                msg.accept(self)
+            except Message.VisitorMethodNotImplemented as e:
+                print(
+                    "{} doesn't implement:{}() for".format(type(self).__name_, e),
+                    msg,
+                )
+        except simpy.Interrupt:
+            print('DISCONNECTED')
+            
     def __receive_loop(self):
         """Receive process for a particular connection dispatches each received message
         """
         while True:
+            print("RCV loop")
             try:
                 msg = yield self.env.process(self._recv_msg())
                 self._emit_protocol_msg_on_bus('INCOMING', msg)
