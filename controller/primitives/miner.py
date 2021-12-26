@@ -193,11 +193,10 @@ class MinerV2(ConnectionProcessor):
             )
         )
         print("Going to receive setup connection success")
-        # we are expecting setup connection success
+        # we are expecting setup connection success;
+        # upon receiving success we send back OpenStandardMiningChannel via the
+        # visit_setup_connection_success
         self.receive_one()
-    
-    # def receive_one(self):
-    #     print("ets?")
         
     class ConnectionConfig:
         """Stratum V2 connection configuration.
@@ -222,12 +221,14 @@ class MinerV2(ConnectionProcessor):
         pass
 
     def visit_setup_connection_success(self, msg: SetupConnectionSuccess):
+        print("Visit setup connection sucess")
         self._emit_protocol_msg_on_bus('Connection setup', msg)
         self.connection_config = self.ConnectionConfig(msg)
         self.state = self.States.CONNECTION_SETUP
 
+        print("Sending open standard mining channel")
         req = OpenStandardMiningChannel(
-            req_id=None,
+            req_id=1,
             user_identity=self.name,
             nominal_hashrate=self.miner.device_information.get('speed_ghps') * 1e9,
             max_target=self.miner.diff_1_target,

@@ -6,7 +6,7 @@ import simpy
 from event_bus import EventBus
 
 from primitives.connection import Connection
-from primitives.messages import SetupConnection, SetupConnectionSuccess, Message
+from primitives.messages import SetupConnection, SetupConnectionSuccess, Message, OpenStandardMiningChannel
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -49,9 +49,7 @@ class ConnectionProcessor:
         self.receive_loop_process.interrupt()
 
     def send_request(self, req):
-        """Register the request and send it down the line"""
-        self.request_registry.push(req)
-        self._send_msg(req)
+        self.connection.send_msg(req)
 
     @abstractmethod
     def _send_msg(self, msg):
@@ -75,8 +73,41 @@ class ConnectionProcessor:
         # Receive process for a particular connection dispatches each received message
         print("RCV one?")
         try:
-            raw = self.connection.sock.recv(4096)
-            msg = SetupConnectionSuccess.from_bytes(raw)
+            if self.connection.conn_target:
+                print("defined target")
+                ciphertext = self.connection.conn_target.recv(4096)
+            else:
+                print("undefined target")
+                ciphertext = self.connection.sock.recv(4096)
+            
+            print(ciphertext)
+            print(len(ciphertext))
+            
+            frame, _ = Connection.unwrap(ciphertext)
+            
+            # print(frame)
+            raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b'', frame)
+            
+    
+            # plaintext is a frame
+            extension_type = raw[0:1]
+            msg_type = raw[2]
+            print(raw)
+            print("Msg type received one:")
+            print(msg_type)
+    
+            msg = None
+            if msg_type == 0x00:
+                msg = SetupConnection.from_bytes(raw)
+            elif msg_type == 0x01:
+                msg = SetupConnectionSuccess.from_bytes(raw)
+            elif msg_type == 0x02:
+                msg = SetupConnectionError.from_bytes(raw)
+            elif msg_type == 0x03:
+                msg = ChannelEndpointChanged.from_bytes(raw)
+            elif msg_type == 0x10:
+                msg = OpenStandardMiningChannel.from_bytes(raw)
+                
             print('INCOMING', msg)
 
             try:

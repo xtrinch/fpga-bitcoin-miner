@@ -58,6 +58,13 @@ def U32(inter):
 
     return (inter).to_bytes(4, byteorder='little')
 
+def F32(inter):
+    
+    assert(type(inter) is float), "not float"
+
+    # little endian
+    return struct.pack('<f', inter)
+
 def U64(inter):
 
     assert(type(inter) is int), "not integer"

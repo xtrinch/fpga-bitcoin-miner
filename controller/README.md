@@ -8,7 +8,7 @@ Create virtualenv with `python3 -m venv env`.
 Run `source env/bin/activate`.
 Run `pip install -r requirements.txt`.
 
-Run pool with `python3 pool.py` and miner with `python3 miner.py`.
+Run pool with `python3 simulate-pool.py` and miner with `python3 mine.py`.
 
 # Overview
 

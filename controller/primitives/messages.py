@@ -1,5 +1,5 @@
 import typing
-from .dataTypes import *
+from .protocol_types import *
 import stringcase
 
 """Stratum V2 messages."""
@@ -171,7 +171,48 @@ class OpenStandardMiningChannel(Message):
         self.max_target = max_target
         self.new_job_class = NewMiningJob
         super().__init__(req_id)
+        
+    def to_bytes(self):
+        req_id = U32(self.req_id)
+        user_identity = STR0_255(self.user_identity)
+        nominal_hashrate = F32(self.nominal_hashrate)
+        max_target = U256(self.max_target)
+        
+        print(req_id)
+        print(user_identity)
+        print(nominal_hashrate)
+        print(max_target)
+        
+        payload = req_id+user_identity+nominal_hashrate+max_target
+    
+        frame = FRAME(0x0abc,"OpenStandardMiningChannel", payload)
+        return frame
 
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        print(bytes)
+        print(len(bytes))
+        req_id = int.from_bytes(bytes[0:4], byteorder='little')
+        
+        l=bytes[4]
+        
+        user_identity = bytes[5:5+l].decode("utf-8") 
+        nominal_hashrate = struct.unpack('<f', bytes[5+l:5+l+4])
+        max_target = int.from_bytes(bytes[5+l+4:5+l+4+4], byteorder='little')
+
+        
+        print(req_id)
+        print(user_identity)
+        print(nominal_hashrate)
+        print(max_target)
+        
+        msg = OpenStandardMiningChannel(
+            req_id=req_id,
+            user_identity=user_identity,
+            nominal_hashrate=nominal_hashrate,
+            max_target=max_target
+        )
+        return msg
 
 class OpenStandardMiningChannelSuccess(ChannelMessage):
     def __init__(

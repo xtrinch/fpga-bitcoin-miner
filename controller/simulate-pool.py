@@ -117,6 +117,15 @@ def main():
                 Fore.RESET,
             )
 
+    conn1 = Connection(
+        env,
+        'stratum',
+        mean_latency=args.latency,
+        latency_stddev_percent=0 if args.no_luck else 10,
+        pool_host = 'localhost',
+        pool_port = 2000
+    )
+    
     pool = Pool(
         'pool1',
         env,
@@ -128,16 +137,27 @@ def main():
         simulate_luck=not args.no_luck,
     )
 
-    pool.make_handshake()
+    pool.make_handshake(conn1)
 
     print("Handshake done")
 
     # wait for open connection
-    ciphertext = pool.conn.recv(4096)
+    ciphertext = pool.connection.conn_target.recv(4096)
     print("Raw: Setup connection rcv")
     print(ciphertext)
     frame, _ = Connection.unwrap(ciphertext)
-    plaintext = pool.cipherstates[0].decrypt_with_ad(b'', frame)
+    plaintext = pool.connection.decrypt_cipher_state.decrypt_with_ad(b'', frame)
+    
+            # try:
+            #     plaintext = pool.connection.cipher_state.decrypt_with_ad(b'', frame)
+            # except Exception as e:
+            #     print(e)
+            
+            # try:
+            #     plaintext = pool.connection.cipher_state.decrypt_with_ad(b'', frame)
+            # except Exception as e:
+            #     print(e)
+                
     print("Decoded: Setup connection rcv")
     print(plaintext)
     
@@ -151,6 +171,9 @@ def main():
     else:
         raise ValueError('Expected a setup connection')
 
+    # should receive open standard mining channel
+    pool.receive_one()
+    
     env.run(until=args.limit)
 
     if not args.plain_output:

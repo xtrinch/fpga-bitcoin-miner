@@ -369,18 +369,19 @@ class Pool(ConnectionProcessor):
         self.accepted_shares = 0
         self.stale_shares = 0
 
-    def make_handshake(self):       
-        self.sock = socket.socket()
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('localhost', 2000))
-        self.sock.listen(1)
+    def make_handshake(self, connection: Connection): 
+        self.connection = connection
+              
+        connection.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        connection.sock.bind(('localhost', 2000))
+        connection.sock.listen(1)
         print("Listening for connections")
 
-        self.conn, addr = self.sock.accept()
+        connection.conn_target, addr = connection.sock.accept()
         print('Accepted connection from', addr)
 
-        our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
-        private = x25519.X25519PrivateKey.from_private_bytes(our_private)
+        # our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
+        # private = x25519.X25519PrivateKey.from_private_bytes(our_private)
 
         # prepare handshakestate objects for initiator and responder
         our_handshakestate = HandshakeState(
@@ -401,7 +402,7 @@ class Pool(ConnectionProcessor):
         our_handshakestate.initialize(NXHandshakePattern(), False, b"", s=pool_s)
 
         # wait for empty message receive
-        ciphertext = self.conn.recv(4096)
+        ciphertext = connection.conn_target.recv(4096)
         frame, _ = Connection.unwrap(ciphertext)
         message_buffer = bytearray()
         our_handshakestate.read_message(frame, message_buffer)
@@ -410,9 +411,12 @@ class Pool(ConnectionProcessor):
         ## in the buffer, there should be Signature Noise Message, but we 
         ## obviously don't really know how to construct it, so we'll skip it for localhost
         message_buffer = bytearray()
-        self.cipherstates = our_handshakestate.write_message(b"", message_buffer)
+        self.connection.cipherstates = our_handshakestate.write_message(b"", message_buffer)
+        self.connection.cipher_state = self.connection.cipherstates[1]
+        self.connection.decrypt_cipher_state = self.connection.cipherstates[0]
+
         message_buffer = Connection.wrap(bytes(message_buffer))
-        num_sent = self.conn.send(message_buffer)  # rpc send
+        num_sent = connection.conn_target.send(message_buffer)  # rpc send
         
     def reset_stats(self):
         self.accepted_submits = 0
@@ -541,7 +545,7 @@ class Pool(ConnectionProcessor):
         pass
 
     def _send_msg(self, msg):
-        self.conn.send(msg)
+        self.connection.send_msg(msg)
 
     def _recv_msg(self):
         return self.connection.outgoing.get()
@@ -564,12 +568,12 @@ class Pool(ConnectionProcessor):
         # arbitrary for now
         # if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
         # response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
-
+        print("sending connection success")
         self._send_msg(
             SetupConnectionSuccess(
                 used_version=min(msg.min_version, msg.max_version),
                 flags=0,
-            ).to_bytes()
+            )
         )
 
     def visit_open_standard_mining_channel(self, msg: OpenStandardMiningChannel):
@@ -581,7 +585,7 @@ class Pool(ConnectionProcessor):
                 cfg=msg, conn_uid=self.connection.uid, channel_id=None, session=None
             )
             # Appending assigns the channel a unique ID within this connection
-            self._mining_channel_registry.append(mining_channel)
+            # self._mining_channel_registry.append(mining_channel)
 
             # TODO use partial to bind the mining channel to the _on_vardiff_change and eliminate the need for the
             #  backlink
