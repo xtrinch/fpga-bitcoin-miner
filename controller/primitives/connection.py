@@ -84,7 +84,7 @@ class Connection:
     def send_msg(self, msg):
         print("send msg")
         ciphertext = self.cipher_state.encrypt_with_ad(b'', msg.to_bytes())
-        print(len(ciphertext))
+        print(msg.to_bytes())
         print(ciphertext)
         print(type(ciphertext))
         final_message = Connection.wrap(ciphertext)
