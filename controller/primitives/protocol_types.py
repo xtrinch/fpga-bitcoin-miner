@@ -56,6 +56,12 @@ def U32(inter):
 
     return (inter).to_bytes(4, byteorder='little')
 
+def B0_32(inter):
+    
+    assert(type(inter) is bytes), "not integer"
+
+    return inter
+
 def F32(inter):
     
     assert(type(inter) is float), "not float"

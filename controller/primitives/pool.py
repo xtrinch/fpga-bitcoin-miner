@@ -30,6 +30,7 @@ from primitives.types import (
     DownstreamConnectionFlags,
     UpstreamConnectionFlags,
 )
+import random
 
 class MiningJob:
     """This class allows the simulation to track per job difficulty target for
@@ -575,6 +576,7 @@ class Pool(ConnectionProcessor):
                 owner=mining_channel, on_vardiff_change=self._on_vardiff_change
             )
             mining_channel.set_session(session)
+            mining_channel.id = random.randint(0, 16777216)
 
             self._send_msg(
                 OpenStandardMiningChannelSuccess(

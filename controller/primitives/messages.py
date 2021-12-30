@@ -223,11 +223,24 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         extranonce_prefix: bytes,
         group_channel_id: int,
     ):
+        self.req_id = req_id
         self.target = target
+        self.channel_id = channel_id
         self.group_channel_id = group_channel_id
         self.extranonce_prefix = extranonce_prefix
         super().__init__(channel_id=channel_id, req_id=req_id)
 
+    def to_bytes(self):
+        req_id = U32(self.req_id)
+        channel_id = U32(self.channel_id)
+        target = U256(self.target)
+        extranonce_prefix = B0_32(self.extranonce_prefix)
+        group_channel_id = U32(self.group_channel_id)
+        
+        payload = req_id+channel_id+target+extranonce_prefix+group_channel_id
+    
+        frame = FRAME(0x0,"OpenStandardMiningChannelSuccess", payload)
+        return frame
 
 class OpenExtendedMiningChannel(OpenStandardMiningChannel):
     def __init__(self, min_extranonce_size: int, *args, **kwargs):
