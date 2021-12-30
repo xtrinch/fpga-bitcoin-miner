@@ -740,15 +740,15 @@ class Pool(ConnectionProcessor):
                 channel_id=mining_channel.id,
                 job_id=new_job.uid,
                 future_job=is_future_job,
-                version=None,
-                merkle_root=Hash(),
+                version=1,
+                merkle_root=1, # Hash() ?
             )
         elif isinstance(mining_channel.cfg, OpenExtendedMiningChannel):
             msg = NewExtendedMiningJob(
                 channel_id=mining_channel.id,
                 job_id=new_job.uid,
                 future_job=is_future_job,
-                version=None,
+                version=1,
                 version_rolling_allowed=True,  # TODO
                 merkle_path=MerklePath(),
                 cb_prefix=CoinBasePrefix(),

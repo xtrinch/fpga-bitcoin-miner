@@ -378,6 +378,17 @@ class NewMiningJob(ChannelMessage):
             )
         )
 
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        job_id = U32(self.job_id)
+        future_job = BOOL(self.future_job)
+        version = U32(self.version)
+        merkle_root = U32(self.merkle_root)
+        
+        payload = channel_id+job_id+future_job+version+merkle_root
+    
+        frame = FRAME(0x0, "NewMiningJob", payload)
+        return frame
 
 class NewExtendedMiningJob(ChannelMessage):
     def __init__(
