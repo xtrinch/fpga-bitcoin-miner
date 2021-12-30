@@ -28,7 +28,7 @@ from event_bus import EventBus
 
 import primitives.coins as coins
 import primitives.mining_params as mining_params
-from primitives.miner import Miner, MinerV2
+from primitives.miner import Miner
 from primitives.pool import Pool
 from primitives.connection import Connection
 import asyncio # new module 
@@ -130,6 +130,7 @@ def connect():
             device_id='ac6f0145fccc1810',
         ),
         simulate_luck=not args.no_luck,
+        connection=conn1
     )
 
     print("Going to connect to pool")

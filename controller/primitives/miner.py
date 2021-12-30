@@ -30,8 +30,12 @@ from primitives.messages import (
 from primitives.pool import PoolMiningChannel
 from primitives.types import ProtocolType, DownstreamConnectionFlags
 
+class Miner(ConnectionProcessor):
+    
+    class States(enum.Enum):
+        INIT = 0
+        CONNECTION_SETUP = 1
 
-class Miner(object):
     def __init__(
         self,
         name: str,
@@ -39,6 +43,7 @@ class Miner(object):
         bus: EventBus,
         diff_1_target: int,
         device_information: dict,
+        connection: Connection,
         simulate_luck=True,
         *args,
         **kwargs
@@ -48,7 +53,6 @@ class Miner(object):
         self.bus = bus
         self.diff_1_target = diff_1_target
         self.device_information = device_information
-        self.miner = None
         self.work_meter = HashrateMeter(env)
         self.mine_proc = None
         self.job_uid = None
@@ -56,6 +60,12 @@ class Miner(object):
         self.recv_loop_process = None
         self.is_mining = True
         self.simulate_luck = simulate_luck
+        
+        self.state = self.States.INIT
+        self.channel = None
+        self.connection_config = None
+
+        super().__init__(self.name, self.env, self.bus, connection)
 
     def get_actual_speed(self):
         return self.device_information.get('speed_ghps') if self.is_mining else 0
@@ -82,16 +92,13 @@ class Miner(object):
                 self.__emit_hashrate_msg_on_bus(job, avg_time)
                 self.__emit_aux_msg_on_bus('solution found for job {}'.format(job.uid))
 
-                self.miner.submit_mining_solution(job)
+                self.submit_mining_solution(job)
 
-    def connect_to_pool(self, connection: Connection):
-        assert self.miner is None, 'BUG: miner is already connected'
-        
+    def connect_to_pool(self, connection: Connection):        
         connection.connect_to_pool()
 
         # Intializes MinerV2 instance
-        self.miner = MinerV2(self, connection)
-        self.miner.setup_connection()
+        self.setup_connection()
         
         self.__emit_aux_msg_on_bus('Connecting to pool {}:{}'.format(connection.pool_host, connection.pool_port))
 
@@ -100,8 +107,8 @@ class Miner(object):
         if self.mine_proc:
             self.mine_proc.interrupt()
         # Mining is shutdown, terminate any protocol message processing
-        self.miner.terminate()
-        self.miner.disconnect()
+        self.terminate()
+        self.disconnect()
         self.miner = None
 
     def new_mining_session(self, diff_target: coins.Target):
@@ -137,9 +144,7 @@ class Miner(object):
         self.bus.emit(
             self.name,
             self.env.now,
-            self.miner.connection.uid
-            if self.miner
-            else None,
+            self.connection.uid,
             msg,
         )
 
@@ -158,19 +163,6 @@ class Miner(object):
             )
         )
 
-# TODO: Move MiningChannel and session from Pool
-class MinerV2(ConnectionProcessor):
-    class States(enum.Enum):
-        INIT = 0
-        CONNECTION_SETUP = 1
-
-    def __init__(self, miner: Miner, connection: Connection):
-        self.miner = miner
-        self.state = self.States.INIT
-        self.channel = None
-        super().__init__(miner.name, miner.env, miner.bus, connection)
-        self.connection_config = None
-
     def setup_connection(self):
         # Initiate V2 protocol setup
         # TODO-DOC: specification should categorize downstream and upstream flags.
@@ -184,12 +176,12 @@ class MinerV2(ConnectionProcessor):
                 flags=0,  # TODO:
                 endpoint_host=self.connection.pool_host,
                 endpoint_port=self.connection.pool_port,
-                vendor=self.miner.device_information.get('vendor', 'unknown'),
-                hardware_version=self.miner.device_information.get(
+                vendor=self.device_information.get('vendor', 'unknown'),
+                hardware_version=self.device_information.get(
                     'hardware_version', 'unknown'
                 ),
-                firmware=self.miner.device_information.get('firmware', 'unknown'),
-                device_id=self.miner.device_information.get('device_id', ''),
+                firmware=self.device_information.get('firmware', 'unknown'),
+                device_id=self.device_information.get('device_id', ''),
             )
         )
         print("Going to receive setup connection success")
@@ -230,8 +222,8 @@ class MinerV2(ConnectionProcessor):
         req = OpenStandardMiningChannel(
             req_id=1,
             user_identity=self.name,
-            nominal_hashrate=self.miner.device_information.get('speed_ghps') * 1e9,
-            max_target=self.miner.diff_1_target,
+            nominal_hashrate=self.device_information.get('speed_ghps') * 1e9,
+            max_target=self.diff_1_target,
             # Header only mining, now extranonce 2 size required
         )
         # We expect a paired response to our open channel request
@@ -251,8 +243,8 @@ class MinerV2(ConnectionProcessor):
         req = self.request_registry.pop(msg.req_id)
 
         if req is not None:
-            session = self.miner.new_mining_session(
-                coins.Target(msg.target, self.miner.diff_1_target)
+            session = self.new_mining_session(
+                coins.Target(msg.target, self.diff_1_target)
             )
             # TODO find some reasonable extraction of the channel configuration, for now,
             #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
@@ -287,7 +279,7 @@ class MinerV2(ConnectionProcessor):
     def visit_set_new_prev_hash(self, msg: SetNewPrevHash):
         if self.__is_channel_valid(msg):
             if self.channel.session.job_registry.contains(msg.job_id):
-                self.miner.mine_on_new_job(
+                self.mine_on_new_job(
                     job=self.channel.session.job_registry.get_job(msg.job_id),
                     flush_any_pending_work=True,
                 )
@@ -298,7 +290,7 @@ class MinerV2(ConnectionProcessor):
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining
             if not msg.future_job:
-                self.miner.mine_on_new_job(job)
+                self.mine_on_new_job(job)
 
     def visit_submit_shares_success(self, msg: SubmitSharesSuccess):
         if self.__is_channel_valid(msg):
@@ -351,5 +343,4 @@ class MinerV2(ConnectionProcessor):
 
         return is_valid
 
-    def run(self):
-        pass
+# TODO: Move MiningChannel and session from Pool

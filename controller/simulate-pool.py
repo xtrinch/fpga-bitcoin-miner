@@ -31,7 +31,7 @@ from event_bus import EventBus
 
 import primitives.coins as coins
 import primitives.mining_params as mining_params
-from primitives.miner import Miner, MinerV2
+from primitives.miner import Miner
 from primitives.pool import Pool
 from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
 from dissononce.processing.impl.handshakestate import HandshakeState
