@@ -167,7 +167,6 @@ class Miner(ConnectionProcessor):
         # Initiate V2 protocol setup
         # TODO-DOC: specification should categorize downstream and upstream flags.
         #  PubKey handling is also not precisely defined yet
-        print("Send Setup Connection MSG")
         self.connection.send_msg(
             SetupConnection(
                 protocol=ProtocolType.MINING_PROTOCOL,
@@ -213,12 +212,10 @@ class Miner(ConnectionProcessor):
         pass
 
     def visit_setup_connection_success(self, msg: SetupConnectionSuccess):
-        print("Visit setup connection sucess")
         self._emit_protocol_msg_on_bus('Connection setup', msg)
         self.connection_config = self.ConnectionConfig(msg)
         self.state = self.States.CONNECTION_SETUP
 
-        print("Sending open standard mining channel")
         req = OpenStandardMiningChannel(
             req_id=1,
             user_identity=self.name,

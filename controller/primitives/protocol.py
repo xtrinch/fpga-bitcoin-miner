@@ -71,7 +71,6 @@ class ConnectionProcessor:
 
     def receive_one(self):
         # Receive process for a particular connection dispatches each received message
-        print("RCV one?")
         try:
             if self.connection.conn_target:
                 print("defined target")
@@ -79,9 +78,6 @@ class ConnectionProcessor:
             else:
                 print("undefined target")
                 ciphertext = self.connection.sock.recv(4096)
-            
-            print(ciphertext)
-            print(len(ciphertext))
             
             frame, _ = Connection.unwrap(ciphertext)
             
@@ -92,9 +88,6 @@ class ConnectionProcessor:
             # plaintext is a frame
             extension_type = raw[0:1]
             msg_type = raw[2]
-            print(raw)
-            print("Msg type received one:")
-            print(msg_type)
     
             msg = None
             if msg_type == 0x00:
@@ -108,7 +101,7 @@ class ConnectionProcessor:
             elif msg_type == 0x10:
                 msg = OpenStandardMiningChannel.from_bytes(raw)
                 
-            print('INCOMING', msg)
+            print('receive msg %s' % msg)
 
             try:
                 msg.accept(self)

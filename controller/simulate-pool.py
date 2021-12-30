@@ -141,39 +141,13 @@ def main():
 
     print("Handshake done")
 
-    # wait for open connection
-    ciphertext = pool.connection.conn_target.recv(4096)
-    print("Raw: Setup connection rcv")
-    print(ciphertext)
-    frame, _ = Connection.unwrap(ciphertext)
-    plaintext = pool.connection.decrypt_cipher_state.decrypt_with_ad(b'', frame)
+    # should receive setup connection
+    pool.receive_one()
     
-            # try:
-            #     plaintext = pool.connection.cipher_state.decrypt_with_ad(b'', frame)
-            # except Exception as e:
-            #     print(e)
-            
-            # try:
-            #     plaintext = pool.connection.cipher_state.decrypt_with_ad(b'', frame)
-            # except Exception as e:
-            #     print(e)
-                
-    print("Decoded: Setup connection rcv")
-    print(plaintext)
-    
-    # plaintext is a frame
-    extension_type = plaintext[0:1]
-    msg_type = plaintext[2]
-    
-    if msg_type == 0x00:
-        setup_connection_msg = SetupConnection.from_bytes(plaintext[6:]) # 0-6 is general frame data
-        pool.visit_setup_connection(setup_connection_msg)
-    else:
-        raise ValueError('Expected a setup connection')
-
     # should receive open standard mining channel
     pool.receive_one()
     
+    print("LOOP POOL")
     env.run(until=args.limit)
 
     if not args.plain_output:

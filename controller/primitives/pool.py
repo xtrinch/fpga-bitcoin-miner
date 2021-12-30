@@ -395,9 +395,6 @@ class Pool(ConnectionProcessor):
         )
 
         pool_s = X25519DH().generate_keypair()
-        print(pool_s.__dict__)
-        print(pool_s.public.__dict__)
-        print(pool_s.private.__dict__)
         our_handshakestate.initialize(NXHandshakePattern(), False, b"", s=pool_s)
 
         # wait for empty message receive
@@ -551,7 +548,6 @@ class Pool(ConnectionProcessor):
         # arbitrary for now
         # if DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING not in msg.flags:
         # response_flags.add(UpstreamConnectionFlags.REQUIRES_FIXED_VERSION)
-        print("sending connection success")
         self._send_msg(
             SetupConnectionSuccess(
                 used_version=min(msg.min_version, msg.max_version),
@@ -712,9 +708,9 @@ class Pool(ConnectionProcessor):
         return SetNewPrevHash(
             channel_id=channel_id,
             job_id=future_job_id,
-            prev_hash=self.prev_hash,
+            prev_hash=self.prev_hash if self.prev_hash else 0,
             min_ntime=self.env.now,
-            nbits=None,
+            nbits=0, # TODO: None?
         )
 
     @staticmethod

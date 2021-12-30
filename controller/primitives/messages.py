@@ -102,10 +102,6 @@ class SetupConnection(Message):
         vendor_length = bytes[10+endpoint_length+2]
         vendor = bytes[10+endpoint_length+3:10+endpoint_length+3+vendor_length].decode("utf-8") 
 
-        print("ENDPOINT_HOSTs")
-        print(endpoint_host)
-        print(vendor)
-
         msg = SetupConnection(
             protocol=protocol,
             min_version=min_version,
@@ -137,9 +133,6 @@ class SetupConnectionSuccess(Message):
     def from_bytes(bytes: bytearray):
         used_version = int.from_bytes(bytes[0:1], byteorder='little')
         flags = int.from_bytes(bytes[2:5], byteorder='little')
-        
-        print(used_version)
-        print(flags)
         
         msg = SetupConnectionSuccess(
             used_version=used_version,
@@ -178,11 +171,6 @@ class OpenStandardMiningChannel(Message):
         nominal_hashrate = F32(self.nominal_hashrate)
         max_target = U256(self.max_target)
         
-        print(req_id)
-        print(user_identity)
-        print(nominal_hashrate)
-        print(max_target)
-        
         payload = req_id+user_identity+nominal_hashrate+max_target
     
         frame = FRAME(0x0,"OpenStandardMiningChannel", payload)
@@ -190,8 +178,6 @@ class OpenStandardMiningChannel(Message):
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        print(bytes)
-        print(len(bytes))
         req_id = int.from_bytes(bytes[0:4], byteorder='little')
         
         l=bytes[4]
@@ -200,12 +186,6 @@ class OpenStandardMiningChannel(Message):
         nominal_hashrate = struct.unpack('<f', bytes[5+l:5+l+4])
         max_target = int.from_bytes(bytes[5+l+4:5+l+4+4], byteorder='little')
 
-        
-        print(req_id)
-        print(user_identity)
-        print(nominal_hashrate)
-        print(max_target)
-        
         msg = OpenStandardMiningChannel(
             req_id=req_id,
             user_identity=user_identity,
@@ -414,8 +394,14 @@ class NewExtendedMiningJob(ChannelMessage):
 
 class SetNewPrevHash(ChannelMessage):
     def __init__(
-        self, channel_id: int, job_id: int, prev_hash: Hash, min_ntime: int, nbits: int
+        self, 
+        channel_id: int, 
+        job_id: int, 
+        prev_hash: Hash, 
+        min_ntime: int, 
+        nbits: int
     ):
+        self.channel_id = channel_id
         self.prev_hash = prev_hash
         self.min_ntime = min_ntime
         self.nbits = nbits
@@ -426,6 +412,18 @@ class SetNewPrevHash(ChannelMessage):
         return self._format(
             'channel_id={}, job_id={}'.format(self.channel_id, self.job_id)
         )
+        
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        job_id = U32(self.job_id)
+        prev_hash = U256(self.prev_hash)
+        min_ntime = U32(self.min_ntime)
+        nbits = U32(self.nbits)
+        
+        payload = channel_id+job_id+prev_hash+min_ntime+nbits
+    
+        frame = FRAME(0x0, "SetNewPrevHash", payload)
+        return frame
 
 
 class SetCustomMiningJob(ChannelMessage):

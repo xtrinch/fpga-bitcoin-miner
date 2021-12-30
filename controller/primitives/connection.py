@@ -15,6 +15,7 @@ from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
 import time
+from primitives.messages import Message
 
 SLUSHPOOL_CA_PUBKEY = "u95GEReVMjK6k5YqiSFNqqTnKU4ypU2Wm8awa6tmbmDmk1bWt"
 
@@ -50,12 +51,9 @@ class Connection:
     def is_connected(self):
         return self.conn_target is not None
 
-    def send_msg(self, msg):
-        print("send msg")
+    def send_msg(self, msg: Message):
+        print("send msg: %s" %  msg)
         ciphertext = self.cipher_state.encrypt_with_ad(b'', msg.to_bytes())
-        print(msg.to_bytes())
-        print(ciphertext)
-        print(type(ciphertext))
         final_message = Connection.wrap(ciphertext)
         # print(final_message)
         if self.conn_target:
@@ -91,12 +89,8 @@ class Connection:
         self.cipherstates = our_handshakestate.read_message(frame, message_buffer)
         self.cipher_state = self.cipherstates[0];
         self.decrypt_cipher_state = self.cipherstates[1]
-        print(self.cipherstates)
-        print(self.decrypt_cipher_state)
 
         pool_static_server_key = our_handshakestate.rs.data
-        print("Received static key:")
-        print(pool_static_server_key)
         
         if (verify_connection):
             signature = SignatureMessage(message_buffer, pool_static_server_key, self.pool_host == 'localhost')
@@ -120,7 +114,6 @@ class Connection:
 
 class SignatureMessage:
     def __init__(self, raw_signature: bytes, noise_static_pubkey: bytes, is_localhost: bool):
-        print(raw_signature)
         if not is_localhost:
             self.authority_key = base58.b58decode_check(SLUSHPOOL_CA_PUBKEY)
         else:
@@ -146,6 +139,5 @@ class SignatureMessage:
     def verify(self):
         pool_pubkey = ed25519.VerifyingKey(self.authority_key)
         message = self.__serialize_for_verification()
-        print(len(message))
         pool_pubkey.verify(self.signature, message)
-        # assert int(time.time()) < self.not_valid_after, "Expired certificate"
+        assert int(time.time()) < self.not_valid_after, "Expired certificate"
