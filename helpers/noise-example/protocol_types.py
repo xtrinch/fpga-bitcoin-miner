@@ -3,8 +3,6 @@ import binascii
 import ctypes
 import struct
 
-EXTENSION_TYPE = 0x7ABC
-
 def BOOL(bool):
 
     if bool:
@@ -207,7 +205,7 @@ def FRAME(extension_type,msg_type_name,payload):
 
     msg_type = msg_type_pair[0]
 
-    extension_type = EXTENSION_TYPE
+    extension_type = extension_type
 
     channel_msg_bit = msg_type_pair[1]
 
