@@ -349,8 +349,6 @@ class Pool(ConnectionProcessor):
         # Per connection message processors
         self.connection_processors = dict()
 
-        # self.socket_process = env.process(self.__socket_process())
-
         self.pow_update_process = env.process(self.__pow_update())
 
         self.meter_accepted = HashrateMeter(self.env)
@@ -500,23 +498,7 @@ class Pool(ConnectionProcessor):
 
             for connection_processor in self.connection_processors.values():
                 connection_processor.on_new_block()
-
-    def __socket_process(self):
-        print("Starting to listen on 2000...")
-        s = socket.socket()
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(('localhost', 2000))
-        s.listen(1)
-
-        while True:
-                conn, addr = s.accept()
-                print('Accepted connection from', addr)
-                yield self.env.timeout(
-                    np.random.exponential(self.avg_pool_block_time)
-                    if self.simulate_luck
-                    else self.avg_pool_block_time
-                )
-
+                
     def __generate_new_prev_hash(self):
         """Generates a new prevhash based on current time.
         """
