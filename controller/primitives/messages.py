@@ -86,7 +86,7 @@ class SetupConnection(Message):
         device_id = STR0_255(self.device_id)
 
         payload = protocol+min_version+max_version+flags+endpoint_host+endpoint_port+vendor+hardware_version+firmware+device_id
-        frame = FRAME(0x0abc,"SetupConnection",payload)
+        frame = FRAME(0x0,"SetupConnection",payload)
 
         return frame;
     
@@ -130,7 +130,7 @@ class SetupConnectionSuccess(Message):
         flags = U32(self.flags)
         payload = used_version+flags
     
-        frame = FRAME(0x0abc,"SetupConnectionSuccess",payload)
+        frame = FRAME(0x0,"SetupConnectionSuccess",payload)
         return frame
 
     @staticmethod
@@ -185,7 +185,7 @@ class OpenStandardMiningChannel(Message):
         
         payload = req_id+user_identity+nominal_hashrate+max_target
     
-        frame = FRAME(0x0abc,"OpenStandardMiningChannel", payload)
+        frame = FRAME(0x0,"OpenStandardMiningChannel", payload)
         return frame
 
     @staticmethod

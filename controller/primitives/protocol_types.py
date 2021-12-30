@@ -156,10 +156,6 @@ def SEQ0_64K():
 
 def FRAME(extension_type,msg_type_name,payload):
 
-    #extension_type = 0x0ABC
-    #extension_type = 0x8ABC
-    #extension_type = 0
-
     msg_type_list = {"SetupConnection":[0x00,0],
                      "SetupConnectionSuccess":[0x01,0],
                      "SetupConnectionError":[0x02,0],

@@ -179,4 +179,4 @@ class SignatureMessage:
         message = self.__serialize_for_verification()
         print(len(message))
         pool_pubkey.verify(self.signature, message)
-        assert int(time.time()) < self.not_valid_after, "Expired certificate"
+        # assert int(time.time()) < self.not_valid_after, "Expired certificate"
