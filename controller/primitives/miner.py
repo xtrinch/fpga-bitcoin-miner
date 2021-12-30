@@ -87,7 +87,7 @@ class Miner(object):
     def connect_to_pool(self, connection: Connection):
         assert self.miner is None, 'BUG: miner is already connected'
         
-        connection.connect_to()
+        connection.connect_to_pool()
 
         # Intializes MinerV2 instance
         self.miner = MinerV2(self, connection)

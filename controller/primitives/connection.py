@@ -35,7 +35,7 @@ class Connection:
         self.pool_port = pool_port
         self.cipher_state: CipherState = None
 
-    def connect_to(self):
+    def connect_to_pool(self):
         self.sock.connect((self.pool_host, self.pool_port))
 
         self.connect_to_noise(self.sock, self.pool_host != 'localhost')
