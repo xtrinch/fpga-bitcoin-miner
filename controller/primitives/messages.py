@@ -387,6 +387,23 @@ class NewMiningJob(ChannelMessage):
     
         frame = FRAME(0x0, "NewMiningJob", payload)
         return frame
+    
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id=int.from_bytes(bytes[:4], byteorder='little')
+        job_id = int.from_bytes(bytes[4:8], byteorder='little')
+        future_job = bytes[8]
+        version = int.from_bytes(bytes[9:13], byteorder='little')
+        merkle_root = bytes[13:17]
+            
+        msg = NewMiningJob(
+            channel_id=channel_id,
+            job_id=job_id,
+            future_job=future_job,
+            version=version,
+            merkle_root=merkle_root
+        )
+        return msg
 
 class NewExtendedMiningJob(ChannelMessage):
     def __init__(

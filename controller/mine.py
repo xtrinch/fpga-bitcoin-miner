@@ -136,7 +136,10 @@ def connect():
     print("Going to connect to pool")
     m1.connect_to_pool(conn1)
     
-    # receive new mining job
+    # receive open standard mining channel success, TOOD: move to connect to pool
+    m1.receive_one()
+    
+    # receive new minig job
     m1.receive_one()
 
 async def mine():
