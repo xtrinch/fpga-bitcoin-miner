@@ -488,10 +488,22 @@ class SetCustomMiningJobError(ChannelMessage):
 
 
 class SetTarget(ChannelMessage):
-    def __init__(self, channel_id: int, max_target: int):
+    def __init__(
+        self, 
+        channel_id: int, 
+        max_target: int
+    ):
         self.max_target = max_target
         super().__init__(channel_id=channel_id)
 
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        max_target = U256(self.max_target)
+        
+        payload = channel_id+max_target
+    
+        frame = FRAME(0x0, "SetTarget", payload)
+        return frame
 
 class Reconnect(Message):
     def __init__(self, new_host: str, new_port: int):

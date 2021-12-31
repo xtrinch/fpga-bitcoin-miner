@@ -665,7 +665,7 @@ class Pool(ConnectionProcessor):
         the message is accompanied by generating new mining job
         """
         channel = session.owner
-        self._send_msg(SetTarget(channel.id, session.curr_target))
+        self._send_msg(SetTarget(channel.id, session.curr_target.to_bytes()))
 
         new_job_msg = self.__build_new_job_msg(channel, is_future_job=False)
         self._send_msg(new_job_msg)
