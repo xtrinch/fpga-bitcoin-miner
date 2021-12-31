@@ -210,6 +210,24 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         self.extranonce_prefix = extranonce_prefix
         super().__init__(channel_id=channel_id, req_id=req_id)
 
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        req_id = int.from_bytes(bytes[0:4], byteorder='little')
+        channel_id = int.from_bytes(bytes[4:8], byteorder='little')
+        target = int.from_bytes(bytes[8:8+256], byteorder='little')
+        extranonce_prefix = int.from_bytes(bytes[8+256:8+256+32], byteorder='little')
+        group_channel_id = int.from_bytes(bytes[8+256+32:8+256+32+4], byteorder='little')
+
+
+        msg = OpenStandardMiningChannelSuccess(
+            req_id=req_id,
+            channel_id=channel_id,
+            target=target,
+            extranonce_prefix=extranonce_prefix,
+            group_channel_id=group_channel_id
+        )
+        return msg
+
     def to_bytes(self):
         req_id = U32(self.req_id)
         channel_id = U32(self.channel_id)

@@ -58,7 +58,7 @@ def U32(inter):
 
 def B0_32(inter):
     
-    assert(type(inter) is bytes), "not integer"
+    assert(type(inter) is bytes), "not bytes"
 
     return inter
 
@@ -83,7 +83,6 @@ def U256(inter):
     if(type(inter) is bytes):
         return inter
     
-    print(type(inter))
     assert(type(inter) is int), "not integer"
 
     if inter >= 2**256:

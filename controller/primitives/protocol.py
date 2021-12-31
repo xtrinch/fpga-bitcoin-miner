@@ -6,7 +6,7 @@ import simpy
 from event_bus import EventBus
 
 from primitives.connection import Connection
-from primitives.messages import SetupConnection, SetupConnectionSuccess, Message, OpenStandardMiningChannel
+from primitives.messages import SetupConnection, SetupConnectionSuccess, Message, OpenStandardMiningChannel, NewMiningJob, SetTarget, SetNewPrevHash, OpenStandardMiningChannelSuccess
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -89,6 +89,8 @@ class ConnectionProcessor:
             extension_type = raw[0:1]
             msg_type = raw[2]
     
+            # TODO: find a more concise way of doing this
+            print(msg_type)
             msg = None
             if msg_type == 0x00:
                 msg = SetupConnection.from_bytes(raw)
@@ -100,6 +102,14 @@ class ConnectionProcessor:
                 msg = ChannelEndpointChanged.from_bytes(raw)
             elif msg_type == 0x10:
                 msg = OpenStandardMiningChannel.from_bytes(raw)
+            elif msg_type == 0x11:
+                    msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
+            elif msg_type == 0x1e:
+                msg = NewMiningJob.from_bytes(raw)
+            elif msg_type == 0x21:
+                msg = SetTarget.from_bytes(raw)
+            elif msg_type == 0x20:
+                msg = SetNewPrevHash.from_bytes(raw)
                 
             print('receive msg %s' % msg)
 

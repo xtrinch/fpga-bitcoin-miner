@@ -135,6 +135,9 @@ def connect():
 
     print("Going to connect to pool")
     m1.connect_to_pool(conn1)
+    
+    # receive new mining job
+    m1.receive_one()
 
 async def mine():
     while True:
