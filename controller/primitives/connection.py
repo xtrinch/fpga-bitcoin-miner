@@ -19,14 +19,13 @@ from primitives.messages import Message
 
 SLUSHPOOL_CA_PUBKEY = "u95GEReVMjK6k5YqiSFNqqTnKU4ypU2Wm8awa6tmbmDmk1bWt"
 
-def gen_uid(env):
+def gen_uid():
     hashids = Hashids()
-    return hashids.encode(int(env.now * 16), random.randint(0, 16777216))
+    return hashids.encode(random.randint(0, 16777216))
 
 class Connection:
-    def __init__(self, env, port: str, mean_latency=0.01, latency_stddev_percent=10, pool_host='', pool_port=3336):
-        self.uid = gen_uid(env)
-        self.env = env
+    def __init__(self, port: str, mean_latency=0.01, latency_stddev_percent=10, pool_host='', pool_port=3336):
+        self.uid = gen_uid()
         self.port = port
         self.mean_latency = mean_latency
         self.latency_stddev_percent = latency_stddev_percent

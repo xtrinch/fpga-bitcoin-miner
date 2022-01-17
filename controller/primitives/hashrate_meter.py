@@ -10,19 +10,18 @@ import simpy
 class HashrateMeter(object):
     def __init__(
         self,
-        env: simpy.Environment,
         window_size: int = 60,
         granularity: int = 5,
         auto_hold_threshold=None,
     ):
-        self.env = env
         self.time_started = 0
         self.window_size = window_size
         self.granularity = granularity
         self.pow_buffer = np.zeros(self.window_size // self.granularity)
         self.submit_buffer = np.zeros(self.window_size // self.granularity)
         self.frozen_time_buffer = np.zeros(self.window_size // self.granularity)
-        self.roll_proc = env.process(self.roll())
+        self.roll_proc = None
+        # self.roll_proc = env.process(self.roll())
         self.auto_hold_threshold = auto_hold_threshold
         self.on_hold = False
         self.put_on_hold_proc = None
@@ -75,15 +74,16 @@ class HashrateMeter(object):
             )  # will trigger after the threshold
 
     def get_speed(self):
-        total_time_held = np.sum(self.frozen_time_buffer)
-        time_elapsed = self.env.now - self.time_started - total_time_held
-        if time_elapsed > self.window_size:
-            time_elapsed = self.window_size
-        total_work = np.sum(self.pow_buffer)
-        if time_elapsed < 1 or total_work == 0:
-            return None
+        return 0
+        # total_time_held = np.sum(self.frozen_time_buffer)
+        # time_elapsed = self.env.now - self.time_started - total_time_held
+        # if time_elapsed > self.window_size:
+        #     time_elapsed = self.window_size
+        # total_work = np.sum(self.pow_buffer)
+        # if time_elapsed < 1 or total_work == 0:
+        #     return None
 
-        return total_work * 4.294967296 / time_elapsed
+        # return total_work * 4.294967296 / time_elapsed
 
     def get_submit_per_secs(self):
         total_time_held = np.sum(self.frozen_time_buffer)

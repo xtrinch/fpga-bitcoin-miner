@@ -48,24 +48,11 @@ import asyncio # new module
 init()
 bus = EventBus()
 
-def main():
-    print("???")
+def connect():
     np.random.seed(123)
     parser = argparse.ArgumentParser(
         prog='mine.py',
         description='Simulates interaction of a mining pool and two miners',
-    )
-    parser.add_argument(
-        '--realtime',
-        help='run simulation in real-time (otherwise is run as fast as possible)',
-        action='store_const',
-        const=True,
-    )
-    parser.add_argument(
-        '--rt-factor',
-        help='real-time simulation factor, default=1 (enter 0.5 to be twice as fast than the real-time',
-        type=float,
-        default=1,
     )
     parser.add_argument(
         '--limit',
@@ -79,15 +66,6 @@ def main():
         action='store_const',
         const=True,
     )
-    parser.add_argument(
-        '--latency',
-        help='average network latency in seconds, default=0.01',
-        type=float,
-        default=0.01,
-    )
-    parser.add_argument(
-        '--no-luck', help='do not simulate luck', action='store_const', const=True
-    )
 
     parser.add_argument(
         '--plain-output',
@@ -97,14 +75,6 @@ def main():
     )
 
     args = parser.parse_args()
-    if args.realtime:
-        env = simpy.rt.RealtimeEnvironment(factor=args.rt_factor)
-        start_message = '*** starting simulation in real-time mode, factor {}'.format(
-            args.rt_factor
-        )
-    else:
-        env = simpy.Environment()
-        start_message = '*** starting simulation (running as fast as possible)'
 
     if args.verbose:
         @bus.on('pool1')
@@ -120,29 +90,21 @@ def main():
             )
 
     conn1 = Connection(
-        env,
         'stratum',
-        mean_latency=args.latency,
-        latency_stddev_percent=0 if args.no_luck else 10,
         pool_host = 'localhost',
         pool_port = 2000
     )
     
     pool = Pool(
         'pool1',
-        env,
         bus,
         default_target=coins.Target.from_difficulty(
             100000, mining_params.diff_1_target
         ),
         enable_vardiff=True,
-        simulate_luck=not args.no_luck,
     )
 
     pool.make_handshake(conn1)
-
-    if not args.plain_output:
-        print(start_message)
 
     if args.plain_output:
         print(
@@ -154,7 +116,6 @@ def main():
             sep=',',
         )
     else:
-        print('simulation finished!')
         print(
             'accepted shares:',
             pool.accepted_shares,
@@ -177,5 +138,5 @@ async def loop(pool: Pool):
     )
         
 if __name__ == '__main__':
-    pool = main()
+    pool = connect()
     asyncio.run(loop(pool))

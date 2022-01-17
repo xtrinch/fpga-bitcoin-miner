@@ -85,14 +85,6 @@ def connect():
     )
 
     args = parser.parse_args()
-    if args.realtime:
-        env = simpy.rt.RealtimeEnvironment(factor=args.rt_factor)
-        start_message = '*** starting simulation in real-time mode, factor {}'.format(
-            args.rt_factor
-        )
-    else:
-        env = simpy.Environment()
-        start_message = '*** starting simulation (running as fast as possible)'
 
     if args.verbose:
         @bus.on('miner1')
@@ -107,7 +99,6 @@ def connect():
             )
 
     conn1 = Connection(
-        env,
         'stratum',
         mean_latency=args.latency,
         latency_stddev_percent=0 if args.no_luck else 10,
@@ -119,7 +110,6 @@ def connect():
     
     m1 = Miner(
         'miner1',
-        env,
         bus,
         diff_1_target=mining_params.diff_1_target,
         device_information=dict(
@@ -136,39 +126,26 @@ def connect():
     print("Going to connect to pool")
     m1.connect_to_pool(conn1)
     
-    # mine!
-    # env.run(until=args.limit)
-    
-    # print("Going to standard mining channel success")
-    # # receive open standard mining channel success, TOOD: move to connect to pool
-    # m1.receive_one()
-    
-    # print("Going to receive new mining job")
-    # # receive new minig job
-    # m1.receive_one()
-    
-    # print("Going to receive new prev hash")
-    # # receive set new prev hash
-    # m1.receive_one()
-
-    # mine!
-    # env.run(until=args.limit)
-
-    # at this point, we need to start mining, as we have the job!
-    
     return m1, conn1
      
 async def mine():
-    while True:
-        if (m1.is_mining):
-            m1.mine(m1.job)
-        else:
-            await asyncio.sleep(0.5)
+    try:
+        while True:
+            print("IS MINING:")
+            print(m1.is_mining)
+            if (m1.is_mining):
+                m1.mine(m1.job)
+            else:
+                # print("SLEE")
+                await asyncio.sleep(0.1)
+                print(".")
+    except Exception as e:
+        print(e)
             
 async def main(m1: Miner):
     await asyncio.gather(
-        mine(),
         m1.receive_loop(),
+        mine(),
     )
         
 if __name__ == '__main__':

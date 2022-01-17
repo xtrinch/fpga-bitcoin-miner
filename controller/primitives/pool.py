@@ -136,7 +136,6 @@ class MiningSession:
     def __init__(
         self,
         name: str,
-        env: simpy.Environment,
         bus: EventBus,
         owner,
         diff_target: coins.Target,
@@ -148,7 +147,6 @@ class MiningSession:
         """
         """
         self.name = name
-        self.env = env
         self.bus = bus
         self.owner = owner
         self.curr_diff_target = diff_target
@@ -175,9 +173,9 @@ class MiningSession:
 
     def run(self):
         """Explicit activation starts any simulation processes associated with the session"""
-        self.meter = HashrateMeter(self.env)
-        if self.enable_vardiff:
-            self.vardiff_process = self.env.process(self.__vardiff_loop())
+        self.meter = HashrateMeter()
+        # if self.enable_vardiff:
+        #     self.vardiff_process = self.env.process(self.__vardiff_loop())
 
     def account_diff_shares(self, diff: int):
         assert (
@@ -209,12 +207,12 @@ class MiningSession:
                     'DIFF_UPDATE(target={})'.format(self.curr_diff_target)
                 ),
                 self.on_vardiff_change(self)
-                yield self.env.timeout(self.vardiff_time_window_size)
+                # yield self.env.timeout(self.vardiff_time_window_size)
             except simpy.Interrupt:
                 break
 
     def __emit_aux_msg_on_bus(self, msg):
-        self.bus.emit(self.name, self.env.now, self.owner, msg)
+        self.bus.emit(self.name, None, self.owner, msg)
 
 
 class MiningChannel:
@@ -326,7 +324,6 @@ class Pool(ConnectionProcessor):
     def __init__(
         self,
         name: str,
-        env: simpy.Environment,
         bus: EventBus,
         default_target: coins.Target,
         extranonce2_size: int = 8,
@@ -340,7 +337,6 @@ class Pool(ConnectionProcessor):
         :type pool_v2:
         """
         self.name = name
-        self.env = env
         self.bus = bus
         self.default_target = default_target
         self.extranonce2_size = extranonce2_size
@@ -351,11 +347,13 @@ class Pool(ConnectionProcessor):
         # Per connection message processors
         self.connection_processors = dict()
 
-        self.pow_update_process = env.process(self.__pow_update())
+        self.pow_update_process = None
+        # self.pow_update_process = env.process(self.__pow_update())
 
-        self.meter_accepted = HashrateMeter(self.env)
-        self.meter_rejected_stale = HashrateMeter(self.env)
-        self.meter_process = env.process(self.__pool_speed_meter())
+        self.meter_accepted = HashrateMeter()
+        self.meter_rejected_stale = HashrateMeter()
+        # self.meter_process = env.process(self.__pool_speed_meter())
+        self.meter_process = None
         self.enable_vardiff = enable_vardiff
         self.desired_submits_per_sec = desired_submits_per_sec
         self.simulate_luck = simulate_luck
@@ -432,7 +430,6 @@ class Pool(ConnectionProcessor):
         """Creates a new mining session"""
         session = clz(
             name=self.name,
-            env=self.env,
             bus=self.bus,
             owner=owner,
             diff_target=self.default_target,
@@ -485,11 +482,11 @@ class Pool(ConnectionProcessor):
         """This process simulates finding new blocks based on pool's hashrate"""
         while True:
             # simulate pool block time using exponential distribution
-            yield self.env.timeout(
-                np.random.exponential(self.avg_pool_block_time)
-                if self.simulate_luck
-                else self.avg_pool_block_time
-            )
+            # yield self.env.timeout(
+            #     np.random.exponential(self.avg_pool_block_time)
+            #     if self.simulate_luck
+            #     else self.avg_pool_block_time
+            # )
             # Simulate the new block hash by calculating sha256 of current time
             self.__generate_new_prev_hash()
 
@@ -504,11 +501,11 @@ class Pool(ConnectionProcessor):
         # TODO: this is not very precise as to events that would trigger this method in
         #  the same second would yield the same prev hash value,  we should consider
         #  specifying prev hash as a simple sequence number
-        self.prev_hash = hashlib.sha256(bytes(int(self.env.now))).digest()
+        self.prev_hash = hashlib.sha256(bytes(random.randint(0, 16777216))).digest()
 
     def __pool_speed_meter(self):
         while True:
-            yield self.env.timeout(self.meter_period)
+            # yield self.env.timeout(self.meter_period)
             speed = self.meter_accepted.get_speed()
             submit_speed = self.meter_accepted.get_submit_per_secs()
             if speed is None or submit_speed is None:
@@ -519,7 +516,7 @@ class Pool(ConnectionProcessor):
                 )
 
     def __emit_aux_msg_on_bus(self, msg):
-        self.bus.emit(self.name, self.env.now, None, msg)
+        self.bus.emit(self.name, None, None, msg)
 
     def run(self):
         print("GOING TO RUN POOL")
@@ -712,7 +709,7 @@ class Pool(ConnectionProcessor):
             channel_id=channel_id,
             job_id=future_job_id,
             prev_hash=self.prev_hash if self.prev_hash else 0,
-            min_ntime=self.env.now,
+            min_ntime=0, #self.env.now,
             nbits=0, # TODO: None?
         )
 

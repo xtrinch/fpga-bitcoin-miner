@@ -40,7 +40,6 @@ class Miner(ConnectionProcessor):
     def __init__(
         self,
         name: str,
-        env: simpy.Environment,
         bus: EventBus,
         diff_1_target: int,
         device_information: dict,
@@ -50,16 +49,14 @@ class Miner(ConnectionProcessor):
         **kwargs
     ):
         self.name = name
-        self.env = env
         self.bus = bus
         self.diff_1_target = diff_1_target
         self.device_information = device_information
-        self.work_meter = HashrateMeter(env)
+        self.work_meter = HashrateMeter()
         self.mine_proc = None
         self.job_uid = None
         self.share_diff = None
         self.recv_loop_process = None
-        self.is_mining = True
         self.simulate_luck = simulate_luck
         
         self.state = self.States.INIT
@@ -68,7 +65,7 @@ class Miner(ConnectionProcessor):
         self.job = None
         self.is_mining = False
 
-        super().__init__(self.name, self.env, self.bus, connection)
+        super().__init__(self.name, self.bus, connection)
 
     def get_actual_speed(self):
         return self.device_information.get('speed_ghps') if self.is_mining else 0
@@ -116,7 +113,6 @@ class Miner(ConnectionProcessor):
         """Creates a new mining session"""
         session = MiningSession(
             name=self.name,
-            env=self.env,
             bus=self.bus,
             # TODO remove once the backlinks are not needed
             owner=None,
@@ -139,17 +135,13 @@ class Miner(ConnectionProcessor):
         # Restart the process with a new job
         self.job = job
         self.set_is_mining(True)
+        print("Mining:true")
 
     def set_is_mining(self, is_mining):
         self.is_mining = is_mining
 
     def __emit_aux_msg_on_bus(self, msg: str):
-        self.bus.emit(
-            self.name,
-            self.env.now,
-            self.connection.uid,
-            msg,
-        )
+        print(("{}: {}").format(self.name, msg))
 
     def __emit_hashrate_msg_on_bus(self, job: MiningJob, avg_share_time):
         """Reports hashrate statistics on the message bus
@@ -293,7 +285,10 @@ class Miner(ConnectionProcessor):
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining
             if not msg.future_job:
+                print("Starting job immediately!")
                 self.mine_on_new_job(job)
+            else:
+                print("Message is a future job!")
 
     def visit_submit_shares_success(self, msg: SubmitSharesSuccess):
         if self.__is_channel_valid(msg):
@@ -318,7 +313,7 @@ class Miner(ConnectionProcessor):
                 sequence_number=0,  # unique sequential identifier within the channel.
                 job_id=job.uid,
                 nonce=0,
-                ntime=self.env.now,
+                ntime=0, #self.env.now,
                 version=0,  # full nVersion field
             )
         )

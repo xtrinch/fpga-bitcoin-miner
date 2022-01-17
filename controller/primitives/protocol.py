@@ -47,14 +47,14 @@ class ConnectionProcessor:
     """Receives and dispatches a message on a single connection."""
 
     def __init__(
-        self, name: str, env: simpy.Environment, bus: EventBus, connection: Connection
+        self, name: str, bus: EventBus, connection: Connection
     ):
         self.name = name
-        self.env = env
         self.bus = bus
         self.connection = connection
         self.request_registry = RequestRegistry()
-        self.receive_loop_process = self.env.process(self.receive_loop())
+        self.receive_loop_process = None
+        # self.receive_loop_process = self.env.process(self.receive_loop())
 
     def terminate(self):
         self.receive_loop_process.interrupt()
@@ -75,7 +75,7 @@ class ConnectionProcessor:
         pass
 
     def _emit_aux_msg_on_bus(self, log_msg: str):
-        self.bus.emit(self.name, self.env.now, self.connection.uid, log_msg)
+        print(("{}: {}").format(self.name, log_msg))
 
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
         print(msg)
@@ -150,3 +150,4 @@ class ConnectionProcessor:
                 print(e)
                 await asyncio.sleep(2.5)
                 continue
+            await asyncio.sleep(0)
