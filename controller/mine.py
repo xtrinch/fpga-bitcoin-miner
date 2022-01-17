@@ -36,7 +36,7 @@ import time
 
 init()
 bus = EventBus()
-        
+
 def connect():
     np.random.seed(123)
     parser = argparse.ArgumentParser(
@@ -139,34 +139,35 @@ def connect():
     # mine!
     # env.run(until=args.limit)
     
-    print("Going to standard mining channel success")
-    # receive open standard mining channel success, TOOD: move to connect to pool
-    m1.receive_one()
+    # print("Going to standard mining channel success")
+    # # receive open standard mining channel success, TOOD: move to connect to pool
+    # m1.receive_one()
     
-    print("Going to receive new mining job")
-    # receive new minig job
-    m1.receive_one()
+    # print("Going to receive new mining job")
+    # # receive new minig job
+    # m1.receive_one()
     
-    print("Going to receive new prev hash")
-    # receive set new prev hash
-    m1.receive_one()
+    # print("Going to receive new prev hash")
+    # # receive set new prev hash
+    # m1.receive_one()
 
     # mine!
-    env.run(until=args.limit)
+    # env.run(until=args.limit)
 
     # at this point, we need to start mining, as we have the job!
     
+    return m1
+    
 async def mine():
     while True:
-        print('.')
-        await asyncio.sleep(2.5)
+        m1.receive_one()
        
 async def listen():
     while True:
         print(',')
         await asyncio.sleep(2.5)
     
-async def main():
+async def main(m1: Miner):
    await asyncio.gather(
      mine(),
      listen(),
@@ -174,5 +175,5 @@ async def main():
         
 if __name__ == '__main__':
     while True:
-        connect()
-        asyncio.run(main())
+        m1: Miner = connect()
+        asyncio.run(main(m1))

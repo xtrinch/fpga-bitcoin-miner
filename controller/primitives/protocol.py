@@ -73,13 +73,13 @@ class ConnectionProcessor:
     def receive_one(self):
         # Receive process for a particular connection dispatches each received message
         try:
+            # TODO: make this so it doesn't ahve to check
             if self.connection.conn_target:
-                print("defined target")
-                ciphertext = self.connection.conn_target.recv(4096)
+                ciphertext = self.connection.conn_target.recv(8192)
             else:
-                print("undefined target")
-                ciphertext = self.connection.sock.recv(4096)
+                ciphertext = self.connection.sock.recv(8192)
             
+            print(ciphertext)
             frame, _ = Connection.unwrap(ciphertext)
             
             # print(frame)
@@ -125,24 +125,25 @@ class ConnectionProcessor:
                 )
         except simpy.Interrupt:
             print('DISCONNECTED')
-            
+                        
     def __receive_loop(self):
+        # NOT USED
         """Receive process for a particular connection dispatches each received message
         """
         while True:
             print("RCV loop")
             try:
-                msg = yield self.env.process(self._recv_msg())
-                self._emit_protocol_msg_on_bus('INCOMING', msg)
+                yield self.env.process(self.receive_one())
+                # self.receive_one()
 
-                try:
-                    msg.accept(self)
-                except Message.VisitorMethodNotImplemented as e:
-                    self._emit_protocol_msg_on_bus(
-                        "{} doesn't implement:{}() for".format(type(self).__name_, e),
-                        msg,
-                    )
-                #    self._on_invalid_message(msg)
+                # try:
+                #     msg.accept(self)
+                # except Message.VisitorMethodNotImplemented as e:
+                #     self._emit_protocol_msg_on_bus(
+                #         "{} doesn't implement:{}() for".format(type(self).__name_, e),
+                #         msg,
+                #     )
+                # #    self._on_invalid_message(msg)
 
             except simpy.Interrupt:
                 self._emit_aux_msg_on_bus('DISCONNECTED')

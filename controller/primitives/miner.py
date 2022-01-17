@@ -136,7 +136,7 @@ class Miner(ConnectionProcessor):
         if self.mine_proc is not None:
             self.mine_proc.interrupt()
         # Restart the process with a new job
-        self.mine_proc = self.env.process(self.mine(job))
+        self.mine_proc = self.mine(job)
 
     def set_is_mining(self, is_mining):
         self.is_mining = is_mining
@@ -188,7 +188,6 @@ class Miner(ConnectionProcessor):
         # we are expecting setup connection success;
         # upon receiving success we send back OpenStandardMiningChannel via the
         # visit_setup_connection_success
-        self.receive_one()
         
     class ConnectionConfig:
         """Stratum V2 connection configuration.
@@ -201,7 +200,7 @@ class Miner(ConnectionProcessor):
             self.setup_msg = msg
             
     def _recv_msg(self):
-        self.receive_one()
+        return self.connection.incoming.get()
 
     def disconnect(self):
         """Downstream node may initiate disconnect
@@ -287,6 +286,7 @@ class Miner(ConnectionProcessor):
 
     def visit_new_mining_job(self, msg: NewMiningJob):
         if self.__is_channel_valid(msg):
+            print("Yay, channel valid when visiting new mining job!")
             # Prepare a new job with the current session difficulty target
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining
