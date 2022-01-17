@@ -89,10 +89,12 @@ class ConnectionProcessor:
             # plaintext is a frame
             extension_type = raw[0:1]
             msg_type = raw[2]
+            msg_length = raw[3:5] #U24
     
             # TODO: find a more concise way of doing this
             print(msg_type)
             msg = None
+            raw = raw[6:]
             if msg_type == 0x00:
                 msg = SetupConnection.from_bytes(raw)
             elif msg_type == 0x01:
@@ -104,7 +106,7 @@ class ConnectionProcessor:
             elif msg_type == 0x10:
                 msg = OpenStandardMiningChannel.from_bytes(raw)
             elif msg_type == 0x11:
-                    msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
+                msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
             elif msg_type == 0x1e:
                 msg = NewMiningJob.from_bytes(raw)
             elif msg_type == 0x21:

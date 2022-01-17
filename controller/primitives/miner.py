@@ -240,9 +240,7 @@ class Miner(ConnectionProcessor):
     ):
         # TODO: yes, this should check if an SetupMiningConnection has been sent by the client beforehand!!
         # req = self.request_registry.pop(msg.req_id)
-        print("RECEIVED MESSAGE CHANNEL ID:")
-        ### HEREIN LIES THE PROBLEM
-        print(msg.channel_id)
+
         # if req is not None:
         session = self.new_mining_session(
             coins.Target(msg.target, self.diff_1_target)

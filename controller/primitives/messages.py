@@ -98,16 +98,21 @@ class SetupConnection(Message):
     
     @staticmethod
     def from_bytes(bytes: bytearray):
-        protocol = bytes[0]
-        min_version = int.from_bytes(bytes[1:2], byteorder='little')
-        max_version = int.from_bytes(bytes[3:4], byteorder='little')
-        flags = int.from_bytes(bytes[5:8], byteorder='little')
+        protocol = bytes[0] # 1 byte
+        min_version = int.from_bytes(bytes[1:3], byteorder='little') # 2 bytes
+        max_version = int.from_bytes(bytes[3:5], byteorder='little') # 2 bytes
+        flags = int.from_bytes(bytes[5:9], byteorder='little') # 4 bytes
         endpoint_length = bytes[9]
         endpoint_host = bytes[10:10+endpoint_length].decode("utf-8") 
         endpoint_port = bytes[10+endpoint_length+1]
         vendor_length = bytes[10+endpoint_length+2]
         vendor = bytes[10+endpoint_length+3:10+endpoint_length+3+vendor_length].decode("utf-8") 
 
+        print(endpoint_host)
+        print(endpoint_length)
+        print(endpoint_port)
+        print(vendor_length)
+        print(vendor)
         msg = SetupConnection(
             protocol=protocol,
             min_version=min_version,
@@ -137,8 +142,8 @@ class SetupConnectionSuccess(Message):
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        used_version = int.from_bytes(bytes[0:1], byteorder='little')
-        flags = int.from_bytes(bytes[2:5], byteorder='little')
+        used_version = int.from_bytes(bytes[0:2], byteorder='little') # 2 bytes
+        flags = int.from_bytes(bytes[2:6], byteorder='little') # bytes
         
         msg = SetupConnectionSuccess(
             used_version=used_version,
@@ -219,14 +224,13 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
     @staticmethod
     def from_bytes(bytes: bytearray):
         req_id = int.from_bytes(bytes[0:4], byteorder='little')
-        channel_id = int.from_bytes(bytes[5:9], byteorder='little')
-        target = int.from_bytes(bytes[9:9+256], byteorder='little')
-        extranonce_prefix = int.from_bytes(bytes[9+256:9+256+32], byteorder='little')
-        group_channel_id = int.from_bytes(bytes[9+256+32:9+256+32+4], byteorder='little')
-
-        print("MESSAGE CHANNELID")
-        print(channel_id)
-        print(bytes[4:8])
+        channel_id = int.from_bytes(bytes[4:8], byteorder='little') # this is correct!!
+        target = int.from_bytes(bytes[9:9+31], byteorder='little')
+        
+        l = bytes[9+31]
+        
+        extranonce_prefix = int.from_bytes(bytes[41:41+l], byteorder='little')
+        group_channel_id = int.from_bytes(bytes[41+l:46+l], byteorder='little')
 
         msg = OpenStandardMiningChannelSuccess(
             req_id=req_id,
@@ -244,6 +248,8 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         extranonce_prefix = B0_32(self.extranonce_prefix)
         group_channel_id = U32(self.group_channel_id)
         
+        print("OpenStandardMiningChannelSuccess sending channel")
+        print(channel_id)
         payload = req_id+channel_id+target+extranonce_prefix+group_channel_id
     
         frame = FRAME(0x0,"OpenStandardMiningChannelSuccess", payload)
