@@ -6,7 +6,17 @@ import simpy
 from event_bus import EventBus
 
 from primitives.connection import Connection
-from primitives.messages import SetupConnection, SetupConnectionSuccess, Message, OpenStandardMiningChannel, NewMiningJob, SetTarget, SetNewPrevHash, OpenStandardMiningChannelSuccess
+from primitives.messages import (
+msg_type_class_map, 
+SubmitSharesStandard, 
+SetupConnection, 
+SetupConnectionSuccess, 
+SetupConnectionError, 
+Message, 
+OpenStandardMiningChannel, 
+NewMiningJob, SetTarget, 
+SetNewPrevHash, 
+OpenStandardMiningChannelSuccess)
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -97,24 +107,25 @@ class ConnectionProcessor:
             print(msg_type)
             msg = None
             raw = raw[6:] # remove the common bytes
-            if msg_type == 0x00:
-                msg = SetupConnection.from_bytes(raw)
-            elif msg_type == 0x01:
-                msg = SetupConnectionSuccess.from_bytes(raw)
-            elif msg_type == 0x02:
-                msg = SetupConnectionError.from_bytes(raw)
-            elif msg_type == 0x03:
-                msg = ChannelEndpointChanged.from_bytes(raw)
-            elif msg_type == 0x10:
-                msg = OpenStandardMiningChannel.from_bytes(raw)
-            elif msg_type == 0x11:
-                msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
-            elif msg_type == 0x1e:
-                msg = NewMiningJob.from_bytes(raw)
-            elif msg_type == 0x21:
-                msg = SetTarget.from_bytes(raw)
-            elif msg_type == 0x20:
-                msg = SetNewPrevHash.from_bytes(raw)
+            
+            msg_class = msg_type_class_map[msg_type]
+            msg = msg_class.from_bytes(raw)
+            # if msg_type == 0x00:
+            #     msg = SetupConnection.from_bytes(raw)
+            # elif msg_type == 0x01:
+            #     msg = SetupConnectionSuccess.from_bytes(raw)
+            # elif msg_type == 0x02:
+            #     msg = SetupConnectionError.from_bytes(raw)
+            # elif msg_type == 0x10:
+            #     msg = OpenStandardMiningChannel.from_bytes(raw)
+            # elif msg_type == 0x11:
+            #     msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
+            # elif msg_type == 0x1e:
+            #     msg = NewMiningJob.from_bytes(raw)
+            # elif msg_type == 0x21:
+            #     msg = SetTarget.from_bytes(raw)
+            # elif msg_type == 0x20:
+            #     msg = SetNewPrevHash.from_bytes(raw)
                 
             print('receive msg %s' % msg)
 

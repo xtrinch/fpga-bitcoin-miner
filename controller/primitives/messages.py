@@ -581,3 +581,15 @@ class SetGroupChannel(Message):
         self.group_channel_id = group_channel_id
         self.channel_ids = channel_ids
         super().__init__()
+
+msg_type_class_map = {
+    0x00: SetupConnection,
+    0x01: SetupConnectionSuccess,
+    0x02: SetupConnectionError,
+    0x10: OpenStandardMiningChannel,
+    0x11: OpenStandardMiningChannelSuccess,
+    0x1e: NewMiningJob,
+    0x21: SetTarget,
+    0x20: SetNewPrevHash,
+    0x1a: SubmitSharesStandard,
+}
