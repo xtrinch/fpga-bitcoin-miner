@@ -228,6 +228,9 @@ class MiningChannel:
         self.cfg = cfg
         self.conn_uid = conn_uid
         self.id = channel_id
+        self.channel_id = channel_id
+        print("CHANNEL_ID")
+        print(channel_id)
 
     def set_id(self, channel_id):
         self.id = channel_id
@@ -574,6 +577,8 @@ class Pool(ConnectionProcessor):
             mining_channel.set_session(session)
             mining_channel.id = random.randint(0, 16777216)
 
+            print("sneding sucess channelid:")
+            print(mining_channel.id)
             self._send_msg(
                 OpenStandardMiningChannelSuccess(
                     req_id=msg.req_id,
@@ -730,6 +735,8 @@ class Pool(ConnectionProcessor):
         if is_future_job:
             mining_channel.add_future_job(new_job)
 
+        print("SENDING MINING CHANNEL:")
+        print(mining_channel.id)
         # Compose the protocol message based on actual channel type
         if isinstance(mining_channel.cfg, OpenStandardMiningChannel):
             msg = NewMiningJob(

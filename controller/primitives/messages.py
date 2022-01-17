@@ -219,11 +219,14 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
     @staticmethod
     def from_bytes(bytes: bytearray):
         req_id = int.from_bytes(bytes[0:4], byteorder='little')
-        channel_id = int.from_bytes(bytes[4:8], byteorder='little')
-        target = int.from_bytes(bytes[8:8+256], byteorder='little')
-        extranonce_prefix = int.from_bytes(bytes[8+256:8+256+32], byteorder='little')
-        group_channel_id = int.from_bytes(bytes[8+256+32:8+256+32+4], byteorder='little')
+        channel_id = int.from_bytes(bytes[5:9], byteorder='little')
+        target = int.from_bytes(bytes[9:9+256], byteorder='little')
+        extranonce_prefix = int.from_bytes(bytes[9+256:9+256+32], byteorder='little')
+        group_channel_id = int.from_bytes(bytes[9+256+32:9+256+32+4], byteorder='little')
 
+        print("MESSAGE CHANNELID")
+        print(channel_id)
+        print(bytes[4:8])
 
         msg = OpenStandardMiningChannelSuccess(
             req_id=req_id,
@@ -245,6 +248,9 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
     
         frame = FRAME(0x0,"OpenStandardMiningChannelSuccess", payload)
         return frame
+    
+    def msg_type_name(self):
+        return "OpenStandardMiningChannelSuccess"
 
 class OpenExtendedMiningChannel(OpenStandardMiningChannel):
     def __init__(self, min_extranonce_size: int, *args, **kwargs):

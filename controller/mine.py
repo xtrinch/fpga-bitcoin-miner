@@ -139,9 +139,11 @@ def connect():
     # receive open standard mining channel success, TOOD: move to connect to pool
     m1.receive_one()
     
+    print("Going to receive new mining job")
     # receive new minig job
     m1.receive_one()
     
+    print("Going to receive new prev hash")
     # receive set new prev hash
     m1.receive_one()
 

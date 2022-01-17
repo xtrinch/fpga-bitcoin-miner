@@ -240,7 +240,9 @@ class Miner(ConnectionProcessor):
     ):
         # TODO: yes, this should check if an SetupMiningConnection has been sent by the client beforehand!!
         # req = self.request_registry.pop(msg.req_id)
-
+        print("RECEIVED MESSAGE CHANNEL ID:")
+        ### HEREIN LIES THE PROBLEM
+        print(msg.channel_id)
         # if req is not None:
         session = self.new_mining_session(
             coins.Target(msg.target, self.diff_1_target)
@@ -251,7 +253,7 @@ class Miner(ConnectionProcessor):
         self.channel = PoolMiningChannel(
             session=session,
             # cfg=(req, msg),
-            cfg=(msg),
+            cfg=msg,
             conn_uid=self.connection.uid,
             channel_id=msg.channel_id,
         )
@@ -289,6 +291,7 @@ class Miner(ConnectionProcessor):
         print("Visiting new minig job")
         
         if self.__is_channel_valid(msg):
+            print("Yay, channel is valid!!!")
             # Prepare a new job with the current session difficulty target
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining
@@ -336,7 +339,7 @@ class Miner(ConnectionProcessor):
             print(bus_error_msg)
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
-        elif self.channel.id != msg.channel_id:
+        elif self.channel.channel_id != msg.channel_id:
             bus_error_msg = 'Unknown channel (expected: {}, actual: {})'.format(
                 self.channel.id, msg.channel_id
             )
