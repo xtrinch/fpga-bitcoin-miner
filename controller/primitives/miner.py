@@ -201,7 +201,7 @@ class Miner(ConnectionProcessor):
             self.setup_msg = msg
             
     def _recv_msg(self):
-        return self.connection.incoming.get()
+        self.receive_one()
 
     def disconnect(self):
         """Downstream node may initiate disconnect
@@ -286,10 +286,7 @@ class Miner(ConnectionProcessor):
                 )
 
     def visit_new_mining_job(self, msg: NewMiningJob):
-        print("Visiting new minig job")
-        
         if self.__is_channel_valid(msg):
-            print("Yay, channel is valid!!!")
             # Prepare a new job with the current session difficulty target
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining

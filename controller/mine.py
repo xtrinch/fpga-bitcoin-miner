@@ -136,6 +136,10 @@ def connect():
     print("Going to connect to pool")
     m1.connect_to_pool(conn1)
     
+    # mine!
+    # env.run(until=args.limit)
+    
+    print("Going to standard mining channel success")
     # receive open standard mining channel success, TOOD: move to connect to pool
     m1.receive_one()
     
@@ -146,6 +150,9 @@ def connect():
     print("Going to receive new prev hash")
     # receive set new prev hash
     m1.receive_one()
+
+    # mine!
+    env.run(until=args.limit)
 
     # at this point, we need to start mining, as we have the job!
     
