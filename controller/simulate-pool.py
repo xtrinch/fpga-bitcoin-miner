@@ -141,17 +141,6 @@ def main():
 
     pool.make_handshake(conn1)
 
-    print("Handshake done")
-
-    # should receive setup connection
-    pool.receive_one()
-    
-    # should receive open standard mining channel
-    pool.receive_one()
-    
-    print("LOOP POOL")
-    # env.run(until=args.limit)
-
     if not args.plain_output:
         print(start_message)
 
@@ -180,17 +169,13 @@ def main():
             'rejected submits:',
             pool.rejected_submits,
         )
+    return pool
 
-async def listen():
-    while True:
-        await asyncio.sleep(2.5)
-        print('.')
-        
-async def loop():
+async def loop(pool: Pool):
     await asyncio.gather(
-        main(),
-        # listen(),
+        pool.receive_loop(),
     )
         
 if __name__ == '__main__':
-    asyncio.run(loop())
+    pool = main()
+    asyncio.run(loop(pool))

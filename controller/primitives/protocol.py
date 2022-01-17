@@ -17,6 +17,7 @@ OpenStandardMiningChannel,
 NewMiningJob, SetTarget, 
 SetNewPrevHash, 
 OpenStandardMiningChannelSuccess)
+import asyncio # new module 
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -53,7 +54,7 @@ class ConnectionProcessor:
         self.bus = bus
         self.connection = connection
         self.request_registry = RequestRegistry()
-        self.receive_loop_process = self.env.process(self.__receive_loop())
+        self.receive_loop_process = self.env.process(self.receive_loop())
 
     def terminate(self):
         self.receive_loop_process.interrupt()
@@ -139,25 +140,13 @@ class ConnectionProcessor:
         except simpy.Interrupt:
             print('DISCONNECTED')
                         
-    def __receive_loop(self):
-        # NOT USED
+    async def receive_loop(self):
         """Receive process for a particular connection dispatches each received message
         """
         while True:
-            print("RCV loop")
             try:
-                yield self.env.process(self.receive_one())
-                # self.receive_one()
-
-                # try:
-                #     msg.accept(self)
-                # except Message.VisitorMethodNotImplemented as e:
-                #     self._emit_protocol_msg_on_bus(
-                #         "{} doesn't implement:{}() for".format(type(self).__name_, e),
-                #         msg,
-                #     )
-                # #    self._on_invalid_message(msg)
-
-            except simpy.Interrupt:
-                self._emit_aux_msg_on_bus('DISCONNECTED')
-                break  # terminate the event loop
+                self.receive_one()
+            except Exception as e:
+                print(e)
+                await asyncio.sleep(2.5)
+                continue
