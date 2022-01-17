@@ -158,7 +158,7 @@ def connect():
     
     return m1, conn1
     
-async def mine():
+async def listen():
     while True:
         try:
             m1.receive_one()
@@ -167,14 +167,13 @@ async def mine():
             await asyncio.sleep(2.5)
             continue
        
-async def listen():
+async def mine():
     while True:
-        print(',')
-        if (m1.mine_proc):
-            m1.mine_proc()
+        if (m1.is_mining):
+            m1.mine(m1.job)
         else:
-            await asyncio.sleep(2.5)
-    
+            await asyncio.sleep(0.5)
+            
 async def main(m1: Miner):
     await asyncio.gather(
         mine(),

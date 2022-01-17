@@ -65,6 +65,8 @@ class Miner(ConnectionProcessor):
         self.state = self.States.INIT
         self.channel = None
         self.connection_config = None
+        self.job = None
+        self.is_mining = False
 
         super().__init__(self.name, self.env, self.bus, connection)
 
@@ -135,7 +137,8 @@ class Miner(ConnectionProcessor):
         if self.mine_proc is not None:
             self.mine_proc.interrupt()
         # Restart the process with a new job
-        self.mine_proc = self.mine(job)
+        self.job = job
+        self.set_is_mining(True)
 
     def set_is_mining(self, is_mining):
         self.is_mining = is_mining
