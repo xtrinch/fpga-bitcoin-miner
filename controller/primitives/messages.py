@@ -1,3 +1,5 @@
+# see https://github.com/stratumv2/stratumv2/blob/master/messages.py it has some parsing already
+
 import typing
 from .protocol_types import *
 import stringcase
@@ -25,9 +27,13 @@ class Message:
     def __init__(self, req_id=None):
         self.req_id = req_id
 
-    def accept(self, visitor):
+    def accept(self, visitor):        
         """Call visitor method based on the actual message type."""
         method_name = 'visit_{}'.format(stringcase.snakecase(type(self).__name__))
+        
+        print("visitor:")
+        print(method_name)
+        
         try:
             visit_method = getattr(visitor, method_name)
         except AttributeError:
@@ -459,6 +465,23 @@ class SetNewPrevHash(ChannelMessage):
     
         frame = FRAME(0x0, "SetNewPrevHash", payload)
         return frame
+    
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id=int.from_bytes(bytes[:4], byteorder='little')
+        job_id = int.from_bytes(bytes[4:8], byteorder='little')
+        prev_hash = int.from_bytes(bytes[8:40], byteorder='little')
+        min_ntime = int.from_bytes(bytes[40:44], byteorder='little')
+        nbits = int.from_bytes(bytes[44:48], byteorder='little')
+            
+        msg = SetNewPrevHash(
+            channel_id=channel_id,
+            job_id=job_id,
+            prev_hash=prev_hash,
+            min_ntime=min_ntime,
+            nbits=nbits
+        )
+        return msg
 
 
 class SetCustomMiningJob(ChannelMessage):

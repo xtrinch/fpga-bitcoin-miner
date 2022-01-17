@@ -141,7 +141,12 @@ def connect():
     
     # receive new minig job
     m1.receive_one()
+    
+    # receive set new prev hash
+    m1.receive_one()
 
+    # at this point, we need to start mining, as we have the job!
+    
 async def mine():
     while True:
         print('.')

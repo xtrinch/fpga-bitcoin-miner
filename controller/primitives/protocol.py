@@ -67,6 +67,7 @@ class ConnectionProcessor:
         self.bus.emit(self.name, self.env.now, self.connection.uid, log_msg)
 
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
+        print(msg)
         self._emit_aux_msg_on_bus('{}: {}'.format(log_msg, msg))
 
     def receive_one(self):

@@ -148,7 +148,7 @@ def main():
     pool.receive_one()
     
     print("LOOP POOL")
-    env.run(until=args.limit)
+    # env.run(until=args.limit)
 
     if not args.plain_output:
         print(start_message)

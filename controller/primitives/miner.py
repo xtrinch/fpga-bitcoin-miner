@@ -126,6 +126,7 @@ class Miner(ConnectionProcessor):
         return session
 
     def mine_on_new_job(self, job: MiningJob, flush_any_pending_work=True):
+        print("Start to work on new job! Yay!")
         """Start working on a new job
 
          TODO implement more advanced flush policy handling (e.g. wait for the current
@@ -237,26 +238,29 @@ class Miner(ConnectionProcessor):
     def visit_open_standard_mining_channel_success(
         self, msg: OpenStandardMiningChannelSuccess
     ):
-        req = self.request_registry.pop(msg.req_id)
+        # TODO: yes, this should check if an SetupMiningConnection has been sent by the client beforehand!!
+        # req = self.request_registry.pop(msg.req_id)
 
-        if req is not None:
-            session = self.new_mining_session(
-                coins.Target(msg.target, self.diff_1_target)
-            )
-            # TODO find some reasonable extraction of the channel configuration, for now,
-            #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
-            #  pair that provides complete information
-            self.channel = PoolMiningChannel(
-                session=session,
-                cfg=(req, msg),
-                conn_uid=self.connection.uid,
-                channel_id=msg.channel_id,
-            )
-            session.run()
-        else:
-            self._emit_protocol_msg_on_bus(
-                'Cannot find matching OpenMiningChannel request', msg
-            )
+        # if req is not None:
+        session = self.new_mining_session(
+            coins.Target(msg.target, self.diff_1_target)
+        )
+        # TODO find some reasonable extraction of the channel configuration, for now,
+        #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
+        #  pair that provides complete information
+        self.channel = PoolMiningChannel(
+            session=session,
+            # cfg=(req, msg),
+            cfg=(msg),
+            conn_uid=self.connection.uid,
+            channel_id=msg.channel_id,
+        )
+        print("channel has been assigned!!")
+        session.run()
+        # else:
+        #     self._emit_protocol_msg_on_bus(
+        #         'Cannot find matching OpenMiningChannel request', msg
+        #     )
 
     def visit_open_extended_mining_channel_success(
         self, msg: OpenStandardMiningChannelSuccess
@@ -282,6 +286,8 @@ class Miner(ConnectionProcessor):
                 )
 
     def visit_new_mining_job(self, msg: NewMiningJob):
+        print("Visiting new minig job")
+        
         if self.__is_channel_valid(msg):
             # Prepare a new job with the current session difficulty target
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
@@ -327,12 +333,14 @@ class Miner(ConnectionProcessor):
                 'Mining Channel not established yet, received channel '
                 'message with channel ID({})'.format(msg.channel_id)
             )
+            print(bus_error_msg)
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
         elif self.channel.id != msg.channel_id:
             bus_error_msg = 'Unknown channel (expected: {}, actual: {})'.format(
-                self.channel.channel_id, msg.channel_id
+                self.channel.id, msg.channel_id
             )
+            print(bus_error_msg)
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
         else:
