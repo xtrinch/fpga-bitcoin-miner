@@ -79,7 +79,9 @@ class ConnectionProcessor:
             else:
                 ciphertext = self.connection.sock.recv(8192)
             
-            print(ciphertext)
+            if not ciphertext:
+                raise Exception('Closed connection')
+            
             frame, _ = Connection.unwrap(ciphertext)
             
             # print(frame)

@@ -31,7 +31,6 @@ class Message:
         """Call visitor method based on the actual message type."""
         method_name = 'visit_{}'.format(stringcase.snakecase(type(self).__name__))
         
-        print("visitor:")
         print(method_name)
         
         try:
@@ -108,11 +107,6 @@ class SetupConnection(Message):
         vendor_length = bytes[10+endpoint_length+2]
         vendor = bytes[10+endpoint_length+3:10+endpoint_length+3+vendor_length].decode("utf-8") 
 
-        print(endpoint_host)
-        print(endpoint_length)
-        print(endpoint_port)
-        print(vendor_length)
-        print(vendor)
         msg = SetupConnection(
             protocol=protocol,
             min_version=min_version,
