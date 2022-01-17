@@ -96,7 +96,7 @@ class ConnectionProcessor:
             # TODO: find a more concise way of doing this
             print(msg_type)
             msg = None
-            raw = raw[6:]
+            raw = raw[6:] # remove the common bytes
             if msg_type == 0x00:
                 msg = SetupConnection.from_bytes(raw)
             elif msg_type == 0x01:

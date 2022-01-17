@@ -156,24 +156,32 @@ def connect():
 
     # at this point, we need to start mining, as we have the job!
     
-    return m1
+    return m1, conn1
     
 async def mine():
     while True:
-        m1.receive_one()
+        try:
+            m1.receive_one()
+        except Exception as e:
+            print(e)
+            await asyncio.sleep(2.5)
+            continue
        
 async def listen():
     while True:
         print(',')
-        await asyncio.sleep(2.5)
+        if (m1.mine_proc):
+            m1.mine_proc()
+        else:
+            await asyncio.sleep(2.5)
     
 async def main(m1: Miner):
-   await asyncio.gather(
-     mine(),
-     listen(),
-   )
+    await asyncio.gather(
+        mine(),
+        listen(),
+    )
         
 if __name__ == '__main__':
     while True:
-        m1: Miner = connect()
+        (m1, conn1) = connect()
         asyncio.run(main(m1))

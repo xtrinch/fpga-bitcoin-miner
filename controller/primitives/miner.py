@@ -7,6 +7,7 @@ from primitives.hashrate_meter import HashrateMeter
 from primitives.connection import Connection
 from primitives.pool import MiningSession, MiningJob, Pool
 from primitives.protocol import ConnectionProcessor
+import asyncio # new module 
 
 import enum
 
@@ -70,7 +71,11 @@ class Miner(ConnectionProcessor):
     def get_actual_speed(self):
         return self.device_information.get('speed_ghps') if self.is_mining else 0
 
-    def mine(self, job: MiningJob):        
+    def _send_msg(self, msg):
+        self.connection.send_msg(msg)
+
+    def mine(self, job: MiningJob):    
+        print("Mining!")    
         share_diff = job.diff_target.to_difficulty()
         avg_time = share_diff * 4.294967296 / self.device_information.get('speed_ghps')
 
@@ -78,13 +83,7 @@ class Miner(ConnectionProcessor):
         self.__emit_hashrate_msg_on_bus(job, avg_time)
 
         while True:
-            try:
-                yield self.env.timeout(
-                    np.random.exponential(avg_time) if self.simulate_luck else avg_time
-                )
-            except simpy.Interrupt:
-                self.__emit_aux_msg_on_bus('Mining aborted (external signal)')
-                break
+            # TODO: the actual mining would happen here!
 
             # To simulate miner failures we can disable mining
             if self.is_mining:
@@ -310,7 +309,7 @@ class Miner(ConnectionProcessor):
         """
         # TODO: seq_num is currently unused, we should use it for tracking
         #  accepted/rejected shares
-        self.connection._send_msg(
+        self._send_msg(
             SubmitSharesStandard(
                 channel_id=self.channel.id,
                 sequence_number=0,  # unique sequential identifier within the channel.

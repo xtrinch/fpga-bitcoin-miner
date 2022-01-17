@@ -43,11 +43,13 @@ from dissononce.hash.blake2s import Blake2sHash
 from cryptography.hazmat.primitives.asymmetric import x25519
 from primitives.connection import Connection
 from primitives.messages import SetupConnection, SetupConnectionSuccess
+import asyncio # new module 
 
 init()
 bus = EventBus()
 
 def main():
+    print("???")
     np.random.seed(123)
     parser = argparse.ArgumentParser(
         prog='mine.py',
@@ -179,5 +181,16 @@ def main():
             pool.rejected_submits,
         )
 
+async def listen():
+    while True:
+        await asyncio.sleep(2.5)
+        print('.')
+        
+async def loop():
+    await asyncio.gather(
+        main(),
+        # listen(),
+    )
+        
 if __name__ == '__main__':
-    main()
+    asyncio.run(loop())
