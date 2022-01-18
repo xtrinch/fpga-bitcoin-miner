@@ -1,0 +1,13 @@
+{
+    "[python]": {
+      "editor.insertSpaces": true,
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+      },
+      "editor.tabSize": 4
+    },
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/usr/bin/python3",
+    "python.linting.lintOnSave": true
+}

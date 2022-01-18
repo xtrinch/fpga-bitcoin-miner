@@ -1,0 +1,35 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/xtrinch/repos/icestick-fpga-sha256/include",
+                "/home/xtrinch/repos/icestick-fpga-sha256/src",
+                "/home/xtrinch/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/xtrinch/repos/icestick-fpga-sha256/include",
+                    "/home/xtrinch/repos/icestick-fpga-sha256/src",
+                    "/home/xtrinch/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                ""
+            ],
+            "compilerPath": "/usr/bin/cc",
+            "compilerArgs": [
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
