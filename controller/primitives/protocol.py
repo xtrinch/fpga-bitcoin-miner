@@ -108,7 +108,7 @@ class ConnectionProcessor:
             msg_class = msg_type_class_map[msg_type]
             msg = msg_class.from_bytes(raw)
 
-            print('receive msg: %s' % msg)
+            print('MSG RCV: %s' % msg)
 
             try:
                 msg.accept(self)

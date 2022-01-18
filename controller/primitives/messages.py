@@ -77,7 +77,23 @@ class SetupConnection(Message):
         self.firmware = firmware
         self.device_id = device_id
         super().__init__()
-    
+
+    def __str__(self):
+        return self._format(
+            'protocol={}, max_version={}, min_version={}, flags={}, endpoint_host={}, endpoint_port={}, vendor={}, hardware_version={}, firmware={}, device_id={}'.format(
+                self.protocol,
+                self.max_version,
+                self.min_version,
+                self.flags,
+                self.endpoint_host,
+                self.endpoint_port,
+                self.vendor,
+                self.hardware_version,
+                self.firmware,
+                self.device_id,
+            )
+        )
+
     def to_bytes(self):
         protocol = U8(self.protocol)
         min_version = U16(self.min_version)
@@ -125,7 +141,15 @@ class SetupConnectionSuccess(Message):
         self.used_version = used_version
         self.flags = flags
         super().__init__()
-        
+
+    def __str__(self):
+        return self._format(
+            'used_version={}, flags={}'.format(
+                self.used_version,
+                self.flags,
+            )
+        )
+            
     def to_bytes(self):
         used_version = U16(self.used_version)
         flags = U32(self.flags)
@@ -169,7 +193,18 @@ class OpenStandardMiningChannel(Message):
         self.max_target = max_target
         self.new_job_class = NewMiningJob
         super().__init__(req_id)
-        
+
+    def __str__(self):
+        return self._format(
+            'req_id={}, user_identity={}, nominal_hashrate={}, max_target={}, new_job_class={}'.format(
+                self.req_id,
+                self.user_identity,
+                self.nominal_hashrate,
+                self.max_target,
+                self.new_job_class,
+            )
+        )
+     
     def to_bytes(self):
         req_id = U32(self.req_id)
         user_identity = STR0_255(self.user_identity)

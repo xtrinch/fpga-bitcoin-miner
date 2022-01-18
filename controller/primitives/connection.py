@@ -54,7 +54,7 @@ class Connection:
         return self.conn_target is not None
 
     def send_msg(self, msg: Message):
-        print("send msg: %s" %  msg)
+        print("MSG SEND: %s" %  msg)
         ciphertext = self.cipher_state.encrypt_with_ad(b'', msg.to_bytes())
         final_message = Connection.wrap(ciphertext)
         
