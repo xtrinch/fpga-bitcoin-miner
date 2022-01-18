@@ -209,12 +209,42 @@ class SetupConnectionSuccess(Message):
         return msg
 
 
+# When protocol version negotiation fails (or there is another reason why 
+# the upstream node cannot setup the connection) the server sends this 
+# message with a particular error code prior to closing the connection
 class SetupConnectionError(Message):
     def __init__(self, flags: list, error_code: str):
         self.flags = flags
         self.error_code = error_code
         super().__init__()
 
+def __str__(self):
+        return self._format(
+            "flags={}, error_code={}".format(
+                self.flags, self.error_code
+            )
+        )
+
+    def to_bytes(self):
+        flags = U32(self.channel_id)
+        error_code = STR0_255(self.error_code)
+
+        payload = flags + error_code
+
+        frame = FRAME(0x0, "SetupConnectionError", payload)
+        return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        flags = int.from_bytes(bytes[:4], byteorder="little")
+        error_code_length = bytes[4]
+        error_code = bytes[5 : 5 + error_code_length].decode("utf-8")
+
+        msg = SetupConnectionError(
+            flags=flags,
+            error_code=error_code,
+        )
+        return msg
 
 # Mining Protocol Messages
 class OpenStandardMiningChannel(Message):
@@ -334,9 +364,6 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         frame = FRAME(0x0, "OpenStandardMiningChannelSuccess", payload)
         return frame
 
-    def msg_type_name(self):
-        return "OpenStandardMiningChannelSuccess"
-
 
 class OpenExtendedMiningChannel(OpenStandardMiningChannel):
     def __init__(self, min_extranonce_size: int, *args, **kwargs):
@@ -367,6 +394,9 @@ class OpenMiningChannelError(Message):
         super().__init__(req_id)
 
 
+# Client notifies the server about changes on the specified channel.
+# If a client performs device/connection aggregation (i.e. it is a proxy),
+# it MUST send this message when downstream channels change
 class UpdateChannel(ChannelMessage):
     def __init__(self, channel_id: int, nominal_hash_rate: float, maximum_target: int):
         self.nominal_hash_rate = nominal_hash_rate
@@ -650,6 +680,37 @@ class SetNewPrevHash(ChannelMessage):
         return msg
 
 
+class SetTarget(ChannelMessage):
+    def __init__(self, channel_id: int, max_target: int):
+        self.max_target = max_target
+        super().__init__(channel_id=channel_id)
+
+    def __str__(self):
+        return self._format(
+            "channel_id={}, max_target={}".format(self.channel_id, self.max_target)
+        )
+
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        max_target = U256(self.max_target)
+
+        payload = channel_id + max_target
+
+        frame = FRAME(0x0, "SetTarget", payload)
+        return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id = int.from_bytes(bytes[:4], byteorder="little")
+        max_target = int.from_bytes(bytes[4:8], byteorder="little")
+
+        msg = SetTarget(
+            channel_id=channel_id,
+            max_target=max_target,
+        )
+        return msg
+
+
 class SetCustomMiningJob(ChannelMessage):
     def __init__(
         self,
@@ -709,37 +770,6 @@ class SetCustomMiningJobError(ChannelMessage):
         self.request_id = request_id
         self.error_code = error_code
         super().__init__(channel_id=channel_id)
-
-
-class SetTarget(ChannelMessage):
-    def __init__(self, channel_id: int, max_target: int):
-        self.max_target = max_target
-        super().__init__(channel_id=channel_id)
-
-    def __str__(self):
-        return self._format(
-            "channel_id={}, max_target={}".format(self.channel_id, self.max_target)
-        )
-
-    def to_bytes(self):
-        channel_id = U32(self.channel_id)
-        max_target = U256(self.max_target)
-
-        payload = channel_id + max_target
-
-        frame = FRAME(0x0, "SetTarget", payload)
-        return frame
-
-    @staticmethod
-    def from_bytes(bytes: bytearray):
-        channel_id = int.from_bytes(bytes[:4], byteorder="little")
-        max_target = int.from_bytes(bytes[4:8], byteorder="little")
-
-        msg = SetTarget(
-            channel_id=channel_id,
-            max_target=max_target,
-        )
-        return msg
 
 
 class Reconnect(Message):
