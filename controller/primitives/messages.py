@@ -113,16 +113,33 @@ class SetupConnection(Message):
     
     @staticmethod
     def from_bytes(bytes: bytearray):
+        length_offset = 0
+        
         protocol = bytes[0] # 1 byte
         min_version = int.from_bytes(bytes[1:3], byteorder='little') # 2 bytes
         max_version = int.from_bytes(bytes[3:5], byteorder='little') # 2 bytes
         flags = int.from_bytes(bytes[5:9], byteorder='little') # 4 bytes
-        endpoint_length = bytes[9]
+        
+        endpoint_length = bytes[9]        
         endpoint_host = bytes[10:10+endpoint_length].decode("utf-8") 
-        endpoint_port = bytes[10+endpoint_length+1]
-        vendor_length = bytes[10+endpoint_length+2]
-        vendor = bytes[10+endpoint_length+3:10+endpoint_length+3+vendor_length].decode("utf-8") 
+        endpoint_port = int.from_bytes(bytes[10+endpoint_length:12+endpoint_length], byteorder='little')
+        length_offset += endpoint_length
 
+        vendor_length = bytes[12+length_offset]
+        vendor = bytes[13+length_offset:13+length_offset+vendor_length].decode("utf-8") 
+        length_offset += vendor_length
+
+        hardware_version_length = bytes[13+length_offset]
+        hardware_version = bytes[14+length_offset:14+length_offset+hardware_version_length].decode("utf-8") 
+        length_offset += hardware_version_length
+
+        firmware_length = bytes[14+length_offset]
+        firmware = bytes[15+length_offset:15+length_offset+firmware_length].decode("utf-8") 
+        length_offset += firmware_length
+
+        device_id_length = bytes[15+length_offset]
+        device_id = bytes[16+length_offset:16+length_offset+device_id_length].decode("utf-8") 
+        
         msg = SetupConnection(
             protocol=protocol,
             min_version=min_version,
@@ -131,8 +148,9 @@ class SetupConnection(Message):
             endpoint_host=endpoint_host,
             endpoint_port=endpoint_port,
             vendor=vendor,
-            hardware_version="",
-            firmware=""
+            hardware_version=hardware_version,
+            firmware=firmware,
+            device_id=device_id,
         )
         return msg
 
