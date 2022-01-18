@@ -215,6 +215,17 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         self.extranonce_prefix = extranonce_prefix
         super().__init__(channel_id=channel_id, req_id=req_id)
 
+    def __str__(self):
+        return self._format(
+            'req_id={}, channel_id={}, target={}, extranonce_prefix={}, group_channel_id={}'.format(
+                self.req_id,
+                self.channel_id,
+                self.target,
+                self.extranonce_prefix,
+                self.group_channel_id,
+            )
+        )
+        
     @staticmethod
     def from_bytes(bytes: bytearray):
         req_id = int.from_bytes(bytes[0:4], byteorder='little')
@@ -386,6 +397,32 @@ class SubmitSharesSuccess(ChannelMessage):
                 self.new_shares_sum,
             )
         )
+        
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        last_sequence_number = U32(self.last_sequence_number)
+        new_submits_accepted_count = U32(self.new_submits_accepted_count)
+        new_shares_sum = U32(self.new_shares_sum)
+
+        payload = channel_id+last_sequence_number+new_submits_accepted_count+new_shares_sum
+    
+        frame = FRAME(0x0, "SubmitSharesSuccess", payload)
+        return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id = int.from_bytes(bytes[0:4], byteorder='little')
+        last_sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
+        new_submits_accepted_count = int.from_bytes(bytes[8:12], byteorder='little')
+        new_shares_sum = int.from_bytes(bytes[12:16], byteorder='little')
+
+        msg = SubmitSharesSuccess(
+            channel_id=channel_id,
+            last_sequence_number=last_sequence_number,
+            new_submits_accepted_count=new_submits_accepted_count,
+            new_shares_sum=new_shares_sum,
+        )
+        return msg
 
 
 class SubmitSharesError(ChannelMessage):
@@ -621,4 +658,5 @@ msg_type_class_map = {
     0x21: SetTarget,
     0x20: SetNewPrevHash,
     0x1a: SubmitSharesStandard,
+    0x1c: SubmitSharesSuccess,
 }

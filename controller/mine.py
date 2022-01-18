@@ -124,7 +124,6 @@ def connect():
         connection=conn1
     )
 
-    print("Going to connect to pool")
     m1.connect_to_pool(conn1)
     
     return m1, conn1

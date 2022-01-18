@@ -176,11 +176,6 @@ class Miner(ConnectionProcessor):
                 device_id=self.device_information.get('device_id', ''),
             )
         )
-        print("Going to receive setup connection success")
-        # we are expecting setup connection success;
-        # upon receiving success we send back OpenStandardMiningChannel via the
-        # visit_setup_connection_success
-        
     class ConnectionConfig:
         """Stratum V2 connection configuration.
 
@@ -322,14 +317,12 @@ class Miner(ConnectionProcessor):
                 'Mining Channel not established yet, received channel '
                 'message with channel ID({})'.format(msg.channel_id)
             )
-            print(bus_error_msg)
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
         elif self.channel.channel_id != msg.channel_id:
             bus_error_msg = 'Unknown channel (expected: {}, actual: {})'.format(
                 self.channel.id, msg.channel_id
             )
-            print(bus_error_msg)
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
         else:

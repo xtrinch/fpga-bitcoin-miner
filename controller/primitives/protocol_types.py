@@ -11,12 +11,8 @@ def BOOL(bool):
         bool=False
 
     s = struct.Struct("<" + ' ?')
-
     b = ctypes.create_string_buffer(1)
-
     s.pack_into(b, 0, bool)
-    #print(b.raw)
-    #print(s.size())
 
     return b.raw
 
@@ -223,8 +219,6 @@ def FRAME(extension_type,msg_type_name,payload):
 
     msg_length = payload.__len__()
 
-    #print(msg_length)
-
     return U16(extension_type)+U8(msg_type)+U24(msg_length)+BYTES(payload)
 
 
@@ -245,9 +239,6 @@ def parse_bytes_to_int(frame,*args):
         start=0
         end=frame.__len__()
         #raise Exception("Missing Arguments")
-
-    #print(start,end)
-
 
     data = int.from_bytes(frame[start:end], byteorder='little')
     return data

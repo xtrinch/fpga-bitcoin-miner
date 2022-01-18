@@ -57,7 +57,7 @@ class Connection:
         print("send msg: %s" %  msg)
         ciphertext = self.cipher_state.encrypt_with_ad(b'', msg.to_bytes())
         final_message = Connection.wrap(ciphertext)
-        # print(final_message)
+        
         if self.conn_target:
             self.conn_target.send(final_message)
         else:

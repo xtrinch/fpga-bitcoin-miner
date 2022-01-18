@@ -78,7 +78,6 @@ class ConnectionProcessor:
         print(("{}: {}").format(self.name, log_msg))
 
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
-        print(msg)
         self._emit_aux_msg_on_bus('{}: {}'.format(log_msg, msg))
 
     def receive_one(self):
@@ -95,9 +94,7 @@ class ConnectionProcessor:
             
             frame, _ = Connection.unwrap(ciphertext)
             
-            # print(frame)
             raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b'', frame)
-            
     
             # plaintext is a frame
             extension_type = raw[0:1]
@@ -105,30 +102,13 @@ class ConnectionProcessor:
             msg_length = raw[3:5] #U24
     
             # TODO: find a more concise way of doing this
-            print(msg_type)
             msg = None
             raw = raw[6:] # remove the common bytes
             
             msg_class = msg_type_class_map[msg_type]
             msg = msg_class.from_bytes(raw)
-            # if msg_type == 0x00:
-            #     msg = SetupConnection.from_bytes(raw)
-            # elif msg_type == 0x01:
-            #     msg = SetupConnectionSuccess.from_bytes(raw)
-            # elif msg_type == 0x02:
-            #     msg = SetupConnectionError.from_bytes(raw)
-            # elif msg_type == 0x10:
-            #     msg = OpenStandardMiningChannel.from_bytes(raw)
-            # elif msg_type == 0x11:
-            #     msg = OpenStandardMiningChannelSuccess.from_bytes(raw)
-            # elif msg_type == 0x1e:
-            #     msg = NewMiningJob.from_bytes(raw)
-            # elif msg_type == 0x21:
-            #     msg = SetTarget.from_bytes(raw)
-            # elif msg_type == 0x20:
-            #     msg = SetNewPrevHash.from_bytes(raw)
-                
-            print('receive msg %s' % msg)
+
+            print('receive msg: %s' % msg)
 
             try:
                 msg.accept(self)
