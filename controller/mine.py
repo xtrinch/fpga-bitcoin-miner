@@ -99,6 +99,7 @@ def connect():
             )
 
     conn1 = Connection(
+        'miner',
         'stratum',
         mean_latency=args.latency,
         latency_stddev_percent=0 if args.no_luck else 10,
@@ -141,11 +142,22 @@ async def mine():
                 print(".")
     except Exception as e:
         print(e)
-            
+
+async def receive_loop():
+    """Receive process for a particular connection dispatches each received message
+    """
+    while True:
+        try:
+            m1.receive_one()
+        except Exception as e:
+            print(e)
+            await asyncio.sleep(2.5)
+            continue
+                
 async def main(m1: Miner):
     await asyncio.gather(
-        m1.receive_loop(),
         mine(),
+        receive_loop(),
     )
         
 if __name__ == '__main__':

@@ -90,6 +90,7 @@ def connect():
             )
 
     conn1 = Connection(
+        'pool',
         'stratum',
         pool_host = 'localhost',
         pool_port = 2000

@@ -24,13 +24,16 @@ def gen_uid():
     return hashids.encode(random.randint(0, 16777216))
 
 class Connection:
-    def __init__(self, port: str, mean_latency=0.01, latency_stddev_percent=10, pool_host='', pool_port=3336):
+    def __init__(self, type_name, port: str, mean_latency=0.01, latency_stddev_percent=10, pool_host='', pool_port=3336):
+        self.type_name = type_name
         self.uid = gen_uid()
         self.port = port
         self.mean_latency = mean_latency
         self.latency_stddev_percent = latency_stddev_percent
         self.conn_target = None
         self.sock = socket.socket()
+        if (type_name == 'miner'):
+            self.sock.settimeout(1.0)
         self.pool_host = pool_host
         self.pool_port = pool_port
         self.cipher_state: CipherState = None
