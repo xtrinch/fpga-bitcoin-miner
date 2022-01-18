@@ -73,7 +73,7 @@ class Miner(ConnectionProcessor):
     def _send_msg(self, msg):
         self.connection.send_msg(msg)
 
-    def mine(self, job: MiningJob):    
+    async def mine(self, job: MiningJob):    
         share_diff = job.diff_target.to_difficulty()
         avg_time = share_diff * 4.294967296 / self.device_information.get('speed_ghps')
 
@@ -90,6 +90,7 @@ class Miner(ConnectionProcessor):
                 self.__emit_aux_msg_on_bus('solution found for job {}'.format(job.uid))
 
                 self.submit_mining_solution(job)
+            await asyncio.sleep(1.0)
 
     def connect_to_pool(self, connection: Connection):        
         connection.connect_to_pool()
@@ -122,7 +123,6 @@ class Miner(ConnectionProcessor):
         return session
 
     def mine_on_new_job(self, job: MiningJob, flush_any_pending_work=True):
-        print("Start to work on new job! Yay!")
         """Start working on a new job
 
          TODO implement more advanced flush policy handling (e.g. wait for the current
@@ -199,7 +199,6 @@ class Miner(ConnectionProcessor):
         pass
 
     def visit_setup_connection_success(self, msg: SetupConnectionSuccess):
-        self._emit_protocol_msg_on_bus('Connection setup', msg)
         self.connection_config = self.ConnectionConfig(msg)
         self.state = self.States.CONNECTION_SETUP
 

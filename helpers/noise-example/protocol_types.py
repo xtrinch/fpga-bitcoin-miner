@@ -213,8 +213,6 @@ def FRAME(extension_type,msg_type_name,payload):
 
     msg_length = payload.__len__()
 
-    #print(msg_length)
-
     return U16(extension_type)+U8(msg_type)+U24(msg_length)+BYTES(payload)
 
 

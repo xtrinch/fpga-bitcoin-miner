@@ -132,7 +132,7 @@ async def mine():
     try:
         while True:
             if (m1.is_mining):
-                m1.mine(m1.job)
+                await m1.mine(m1.job)
             else:
                 await asyncio.sleep(0.1)
     except Exception as e:
