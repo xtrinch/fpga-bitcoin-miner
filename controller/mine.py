@@ -132,14 +132,10 @@ def connect():
 async def mine():
     try:
         while True:
-            print("IS MINING:")
-            print(m1.is_mining)
             if (m1.is_mining):
                 m1.mine(m1.job)
             else:
-                # print("SLEE")
                 await asyncio.sleep(0.1)
-                print(".")
     except Exception as e:
         print(e)
 

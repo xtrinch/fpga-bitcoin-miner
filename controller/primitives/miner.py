@@ -74,7 +74,6 @@ class Miner(ConnectionProcessor):
         self.connection.send_msg(msg)
 
     def mine(self, job: MiningJob):    
-        print("Mining!")    
         share_diff = job.diff_target.to_difficulty()
         avg_time = share_diff * 4.294967296 / self.device_information.get('speed_ghps')
 
@@ -135,7 +134,6 @@ class Miner(ConnectionProcessor):
         # Restart the process with a new job
         self.job = job
         self.set_is_mining(True)
-        print("Mining:true")
 
     def set_is_mining(self, is_mining):
         self.is_mining = is_mining
@@ -248,7 +246,6 @@ class Miner(ConnectionProcessor):
             conn_uid=self.connection.uid,
             channel_id=msg.channel_id,
         )
-        print("channel has been assigned!!")
         session.run()
         # else:
         #     self._emit_protocol_msg_on_bus(
@@ -285,10 +282,7 @@ class Miner(ConnectionProcessor):
             job = self.channel.session.new_mining_job(job_uid=msg.job_id)
             # Schedule the job for mining
             if not msg.future_job:
-                print("Starting job immediately!")
                 self.mine_on_new_job(job)
-            else:
-                print("Message is a future job!")
 
     def visit_submit_shares_success(self, msg: SubmitSharesSuccess):
         if self.__is_channel_valid(msg):

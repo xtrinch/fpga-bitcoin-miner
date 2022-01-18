@@ -572,8 +572,6 @@ class Pool(ConnectionProcessor):
             mining_channel.set_session(session)
             mining_channel.id = random.randint(0, 16777216)
 
-            print("sneding sucess channelid:")
-            print(mining_channel.id)
             self._send_msg(
                 OpenStandardMiningChannelSuccess(
                     req_id=msg.req_id,
