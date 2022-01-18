@@ -484,13 +484,43 @@ class SubmitSharesError(ChannelMessage):
         self.error_code = error_code
         super().__init__(channel_id)
 
-
+    def __str__(self):
+        return self._format(
+            'channel_id={}, sequence_number={}, error_code={}'.format(
+                self.channel_id, self.sequence_number, self.error_code
+            )
+        )
+        
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        sequence_number = U32(self.sequence_number)
+        error_code = STR0_255(self.error_code)
+        
+        payload = channel_id+sequence_number+error_code
+    
+        frame = FRAME(0x0, "SubmitSharesError", payload)
+        return frame
+    
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id=int.from_bytes(bytes[:4], byteorder='little')
+        sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
+        error_code_length = bytes[8]
+        error_code = bytes[9:9+error_code_length].decode("utf-8")
+            
+        msg = SubmitSharesError(
+            channel_id=channel_id,
+            sequence_number=sequence_number,
+            error_code=error_code,
+        )
+        return msg
+    
 class NewMiningJob(ChannelMessage):
     def __init__(
         self,
         channel_id: int,
         job_id: int,
-        future_job: bool,
+        future_job: bool, # If is set to False, we MUST start to mine as soon as possible
         version: int,
         merkle_root: Hash,
     ):
@@ -502,8 +532,8 @@ class NewMiningJob(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, job_id={}, future_job={}'.format(
-                self.channel_id, self.job_id, self.future_job
+            'channel_id={}, job_id={}, future_job={}, version={}, merkle_root={}'.format(
+                self.channel_id, self.job_id, self.future_job, self.version, self.merkle_root
             )
         )
 
@@ -712,4 +742,5 @@ msg_type_class_map = {
     0x20: SetNewPrevHash,
     0x1a: SubmitSharesStandard,
     0x1c: SubmitSharesSuccess,
+    0x1d: SubmitSharesError,
 }
