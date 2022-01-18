@@ -242,8 +242,6 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         extranonce_prefix = B0_32(self.extranonce_prefix)
         group_channel_id = U32(self.group_channel_id)
         
-        print("OpenStandardMiningChannelSuccess sending channel")
-        print(channel_id)
         payload = req_id+channel_id+target+extranonce_prefix+group_channel_id
     
         frame = FRAME(0x0,"OpenStandardMiningChannelSuccess", payload)
@@ -327,7 +325,38 @@ class SubmitSharesStandard(ChannelMessage):
         return self._format(
             'channel_id={}, job_id={}'.format(self.channel_id, self.job_id)
         )
+        
+    def to_bytes(self):
+        channel_id = U32(self.channel_id)
+        sequence_number = U32(self.sequence_number)
+        job_id = U32(self.job_id)
+        nonce = U32(self.nonce)
+        ntime = U32(self.ntime)
+        version = U32(self.version)
 
+        payload = channel_id+sequence_number+job_id+nonce+ntime+version
+    
+        frame = FRAME(0x0, "SubmitSharesStandard", payload)
+        return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id = int.from_bytes(bytes[0:4], byteorder='little')
+        sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
+        job_id = int.from_bytes(bytes[8:12], byteorder='little')
+        nonce = int.from_bytes(bytes[12:16], byteorder='little')
+        ntime = int.from_bytes(bytes[16:20], byteorder='little')
+        version = int.from_bytes(bytes[20:24], byteorder='little')
+
+        msg = SubmitSharesStandard(
+            channel_id=channel_id,
+            sequence_number=sequence_number,
+            job_id=job_id,
+            nonce=nonce,
+            ntime=ntime,
+            version=version
+        )
+        return msg
 
 class SubmitSharesExtended(SubmitSharesStandard):
     def __init__(self, extranonce, *args, **kwargs):

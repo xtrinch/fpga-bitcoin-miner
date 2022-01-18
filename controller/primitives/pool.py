@@ -366,10 +366,12 @@ class Pool(ConnectionProcessor):
 
         self.accepted_shares = 0
         self.stale_shares = 0
-
+        self._mining_channel_registry = None
+        
     def make_handshake(self, connection: Connection): 
         self.connection = connection
-              
+        self._mining_channel_registry = ChannelRegistry(connection.uid)
+
         connection.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         connection.sock.bind(('localhost', 2000))
         connection.sock.listen(1)
@@ -518,10 +520,6 @@ class Pool(ConnectionProcessor):
     def __emit_aux_msg_on_bus(self, msg):
         self.bus.emit(self.name, None, None, msg)
 
-    def run(self):
-        print("GOING TO RUN POOL")
-        pass
-
     def _send_msg(self, msg):
         self.connection.send_msg(msg)
 
@@ -562,7 +560,7 @@ class Pool(ConnectionProcessor):
                 cfg=msg, conn_uid=self.connection.uid, channel_id=None, session=None
             )
             # Appending assigns the channel a unique ID within this connection
-            # self._mining_channel_registry.append(mining_channel)
+            self._mining_channel_registry.append(mining_channel)
 
             # TODO use partial to bind the mining channel to the _on_vardiff_change and eliminate the need for the
             #  backlink
@@ -570,7 +568,6 @@ class Pool(ConnectionProcessor):
                 owner=mining_channel, on_vardiff_change=self._on_vardiff_change
             )
             mining_channel.set_session(session)
-            mining_channel.id = random.randint(0, 16777216)
 
             self._send_msg(
                 OpenStandardMiningChannelSuccess(
@@ -622,7 +619,10 @@ class Pool(ConnectionProcessor):
         TODO: implement aggregation of sending SubmitSharesSuccess for a batch of successful submits
         """
         channel = self._mining_channel_registry.get_channel(msg.channel_id)
+        channel = self._mining_channel_registry.get_channel(msg.channel_id)
 
+        assert(channel), "Channel {} is not defined".format(msg.channel_id)
+        
         assert (
             channel.conn_uid == self.connection.uid
         ), "Channel conn UID({}) doesn't match current conn UID({})".format(
