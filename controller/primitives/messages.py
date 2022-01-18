@@ -602,28 +602,6 @@ class NewMiningJob(ChannelMessage):
         return msg
 
 
-class NewExtendedMiningJob(ChannelMessage):
-    def __init__(
-        self,
-        channel_id: int,
-        job_id: int,
-        future_job: bool,
-        version: int,
-        version_rolling_allowed: bool,
-        merkle_path: MerklePath,
-        cb_prefix: CoinBasePrefix,
-        cb_suffix: CoinBaseSuffix,
-    ):
-        self.job_id = job_id
-        self.future_job = future_job
-        self.version = version
-        self.version_rolling_allowed = version_rolling_allowed
-        self.merkle_path = merkle_path
-        self.cb_prefix = cb_prefix
-        self.cb_suffix = cb_suffix
-        super().__init__(channel_id=channel_id)
-
-
 class SetNewPrevHash(ChannelMessage):
     def __init__(
         self, channel_id: int, job_id: int, prev_hash: Hash, min_ntime: int, nbits: int
@@ -738,6 +716,11 @@ class SetTarget(ChannelMessage):
         self.max_target = max_target
         super().__init__(channel_id=channel_id)
 
+    def __str__(self):
+        return self._format(
+            "channel_id={}, max_target={}".format(self.channel_id, self.max_target)
+        )
+
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         max_target = U256(self.max_target)
@@ -746,6 +729,17 @@ class SetTarget(ChannelMessage):
 
         frame = FRAME(0x0, "SetTarget", payload)
         return frame
+
+    @staticmethod
+    def from_bytes(bytes: bytearray):
+        channel_id = int.from_bytes(bytes[:4], byteorder="little")
+        max_target = int.from_bytes(bytes[4:8], byteorder="little")
+
+        msg = SetTarget(
+            channel_id=channel_id,
+            max_target=max_target,
+        )
+        return msg
 
 
 class Reconnect(Message):
@@ -760,6 +754,29 @@ class SetGroupChannel(Message):
         self.group_channel_id = group_channel_id
         self.channel_ids = channel_ids
         super().__init__()
+
+
+# Extended and group channels only
+class NewExtendedMiningJob(ChannelMessage):
+    def __init__(
+        self,
+        channel_id: int,
+        job_id: int,
+        future_job: bool,
+        version: int,
+        version_rolling_allowed: bool,
+        merkle_path: MerklePath,
+        cb_prefix: CoinBasePrefix,
+        cb_suffix: CoinBaseSuffix,
+    ):
+        self.job_id = job_id
+        self.future_job = future_job
+        self.version = version
+        self.version_rolling_allowed = version_rolling_allowed
+        self.merkle_path = merkle_path
+        self.cb_prefix = cb_prefix
+        self.cb_suffix = cb_suffix
+        super().__init__(channel_id=channel_id)
 
 
 msg_type_class_map = {
