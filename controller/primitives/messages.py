@@ -1,6 +1,7 @@
 # see https://github.com/stratumv2/stratumv2/blob/master/messages.py it has some parsing already
 
 import typing
+from abc import abstractmethod
 
 import stringcase
 
@@ -40,6 +41,16 @@ class Message:
 
     def _format(self, content):
         return "{}({})".format(type(self).__name__, content)
+
+    def to_frame(self):
+        payload = self.to_bytes()
+        # self.__class__.__name__ will return the derived class name
+        frame = FRAME(0x0, self.__class__.__name__, payload)
+        return frame
+
+    @abstractmethod
+    def to_bytes(self):
+        pass
 
 
 class ChannelMessage(Message):
@@ -117,9 +128,7 @@ class SetupConnection(Message):
             + firmware
             + device_id
         )
-        frame = FRAME(0x0, "SetupConnection", payload)
-
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -194,8 +203,7 @@ class SetupConnectionSuccess(Message):
         flags = U32(self.flags)
         payload = used_version + flags
 
-        frame = FRAME(0x0, "SetupConnectionSuccess", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -209,8 +217,8 @@ class SetupConnectionSuccess(Message):
         return msg
 
 
-# When protocol version negotiation fails (or there is another reason why 
-# the upstream node cannot setup the connection) the server sends this 
+# When protocol version negotiation fails (or there is another reason why
+# the upstream node cannot setup the connection) the server sends this
 # message with a particular error code prior to closing the connection
 class SetupConnectionError(Message):
     def __init__(self, flags: list, error_code: str):
@@ -218,11 +226,9 @@ class SetupConnectionError(Message):
         self.error_code = error_code
         super().__init__()
 
-def __str__(self):
+    def __str__(self):
         return self._format(
-            "flags={}, error_code={}".format(
-                self.flags, self.error_code
-            )
+            "flags={}, error_code={}".format(self.flags, self.error_code)
         )
 
     def to_bytes(self):
@@ -231,8 +237,7 @@ def __str__(self):
 
         payload = flags + error_code
 
-        frame = FRAME(0x0, "SetupConnectionError", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -246,7 +251,11 @@ def __str__(self):
         )
         return msg
 
-# Mining Protocol Messages
+
+# This message requests to open a standard channel to the upstream node.
+# After receiving a SetupConnection.Success message, the client SHOULD respond by opening channels
+# on the connection. If no channels are opened within a reasonable period the server SHOULD close
+# the connection for inactivity.
 class OpenStandardMiningChannel(Message):
     def __init__(
         self,
@@ -257,9 +266,17 @@ class OpenStandardMiningChannel(Message):
     ):
         """ """
         self.user_identity = user_identity
+        # Expected hash rate of the device (or cumulative hashrate on the channel if multiple devices
+        # are connected downstream) in h/s
         self.nominal_hashrate = nominal_hashrate
+
+        # Maximum target which can be accepted by the connected device or devices. Server MUST accept
+        # the target or respond by sending OpenMiningChannel.Error message.
         self.max_target = max_target
         self.new_job_class = NewMiningJob
+
+        # req_id is Client-specified identifier for matching responses from upstream server. The value
+        # MUST be connection-wide unique and is not interpreted by the server.
         super().__init__(req_id)
 
     def __str__(self):
@@ -281,8 +298,7 @@ class OpenStandardMiningChannel(Message):
 
         payload = req_id + user_identity + nominal_hashrate + max_target
 
-        frame = FRAME(0x0, "OpenStandardMiningChannel", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -361,8 +377,7 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
 
         payload = req_id + channel_id + target + extranonce_prefix + group_channel_id
 
-        frame = FRAME(0x0, "OpenStandardMiningChannelSuccess", payload)
-        return frame
+        return payload
 
 
 class OpenExtendedMiningChannel(OpenStandardMiningChannel):
@@ -454,8 +469,7 @@ class SubmitSharesStandard(ChannelMessage):
 
         payload = channel_id + sequence_number + job_id + nonce + ntime + version
 
-        frame = FRAME(0x0, "SubmitSharesStandard", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -519,8 +533,7 @@ class SubmitSharesSuccess(ChannelMessage):
             + new_shares_sum
         )
 
-        frame = FRAME(0x0, "SubmitSharesSuccess", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -558,8 +571,7 @@ class SubmitSharesError(ChannelMessage):
 
         payload = channel_id + sequence_number + error_code
 
-        frame = FRAME(0x0, "SubmitSharesError", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -576,19 +588,36 @@ class SubmitSharesError(ChannelMessage):
         return msg
 
 
+# The server provides an updated mining job to the client through a standard channel.
+# If the future_job field is set to False, the client MUST start to mine on the new job
+# as soon as possible after receiving this message.
 class NewMiningJob(ChannelMessage):
     def __init__(
         self,
         channel_id: int,
         job_id: int,
-        future_job: bool,  # If is set to False, we MUST start to mine as soon as possible
+        future_job: bool,
         version: int,
         merkle_root: Hash,
     ):
+        # Server’s identification of the mining job. This identifier must be provided to
+        # the server when shares are submitted later in the mining process.
         self.job_id = job_id
+
+        # True if the job is intended for a future SetNewPrevHash message sent on this
+        # channel. If False, the job relates to the last sent SetNewPrevHash message on
+        # the channel and the miner should start to work on the job immediately.
         self.future_job = future_job
+
+        # Valid version field that reflects the current network consensus. The general
+        # purpose bits (as specified in BIP320) can be freely manipulated by the downstream
+        # node. The downstream node MUST NOT rely on the upstream node to set the BIP320
+        # bits to any particular value.
         self.version = version
+
+        # Merkle root field as used in the bitcoin block header.
         self.merkle_root = merkle_root
+
         super().__init__(channel_id=channel_id)
 
     def __str__(self):
@@ -611,8 +640,7 @@ class NewMiningJob(ChannelMessage):
 
         payload = channel_id + job_id + future_job + version + merkle_root
 
-        frame = FRAME(0x0, "NewMiningJob", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -632,15 +660,30 @@ class NewMiningJob(ChannelMessage):
         return msg
 
 
+# Prevhash is distributed whenever a new block is detected in the network by an upstream
+# node. This message MAY be shared by all downstream nodes (sent only once to each
+# channel group). Clients MUST immediately start to mine on the provided prevhash. When
+# a client receives this message, only the job referenced by Job ID is valid. The
+# remaining jobs already queued by the client have to be made invalid.
 class SetNewPrevHash(ChannelMessage):
     def __init__(
         self, channel_id: int, job_id: int, prev_hash: Hash, min_ntime: int, nbits: int
     ):
+        # Group channel or channel that this prevhash is valid for
         self.channel_id = channel_id
+
+        # ID of a job that is to be used for mining with this prevhash. A pool may have
+        # provided multiple jobs for the next block height (e.g. an empty block or a block
+        # with transactions that are complementary to the set of transactions present in
+        # the current block template).
+
+        self.job_id = job_id
+        # Previous block’s hash, block header field
+
         self.prev_hash = prev_hash
+        # Smallest nTime value available for hashing.
         self.min_ntime = min_ntime
         self.nbits = nbits
-        self.job_id = job_id
         super().__init__(channel_id)
 
     def __str__(self):
@@ -659,8 +702,7 @@ class SetNewPrevHash(ChannelMessage):
 
         payload = channel_id + job_id + prev_hash + min_ntime + nbits
 
-        frame = FRAME(0x0, "SetNewPrevHash", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):
@@ -680,8 +722,16 @@ class SetNewPrevHash(ChannelMessage):
         return msg
 
 
+# The server controls the submission rate by adjusting the difficulty target on a specified
+# channel. All submits leading to hashes higher than the specified target will be rejected
+# by the server.
+# Maximum target is valid until the next SetTarget message is sent and is applicable for all
+# jobs received on the channel in the future or already received with flag future_job=True.
+# The message is not applicable for already received jobs with future_job=False, as their
+# maximum target remains stable.
 class SetTarget(ChannelMessage):
     def __init__(self, channel_id: int, max_target: int):
+        # Maximum value of produced hash that will be accepted by a server to accept shares
         self.max_target = max_target
         super().__init__(channel_id=channel_id)
 
@@ -696,8 +746,7 @@ class SetTarget(ChannelMessage):
 
         payload = channel_id + max_target
 
-        frame = FRAME(0x0, "SetTarget", payload)
-        return frame
+        return payload
 
     @staticmethod
     def from_bytes(bytes: bytearray):

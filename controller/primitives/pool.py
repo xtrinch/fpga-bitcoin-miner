@@ -9,8 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
-from dissononce.processing.handshakepatterns.interactive.NX import \
-    NXHandshakePattern
+from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
 from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState
@@ -115,12 +114,11 @@ class MiningJobRegistry:
         """
         assert (
             self.get_job(job.uid) is None
-        ), 'Job {} already exists in the registry'.format(job)
+        ), "Job {} already exists in the registry".format(job)
         self.jobs[job.uid] = job
 
     def __next_job_uid(self):
-        """Initializes a new job ID for this session.
-        """
+        """Initializes a new job ID for this session."""
         curr_job_uid = self.next_job_uid
         self.next_job_uid += 1
 
@@ -144,8 +142,7 @@ class MiningSession:
         vardiff_desired_submits_per_sec=None,
         on_vardiff_change=None,
     ):
-        """
-        """
+        """ """
         self.name = name
         self.bus = bus
         self.owner = owner
@@ -180,7 +177,7 @@ class MiningSession:
     def account_diff_shares(self, diff: int):
         assert (
             self.meter is not None
-        ), 'BUG: session not running yet, cannot account shares'
+        ), "BUG: session not running yet, cannot account shares"
         self.meter.measure(diff)
 
     def terminate(self):
@@ -204,7 +201,7 @@ class MiningSession:
                     factor = self.max_factor
                 self.curr_diff_target.div_by_factor(factor)
                 self.__emit_aux_msg_on_bus(
-                    'DIFF_UPDATE(target={})'.format(self.curr_diff_target)
+                    "DIFF_UPDATE(target={})".format(self.curr_diff_target)
                 ),
                 self.on_vardiff_change(self)
                 # yield self.env.timeout(self.vardiff_time_window_size)
@@ -256,7 +253,7 @@ class PoolMiningChannel(MiningChannel):
         """Takes future job from the channel."""
         assert (
             self.future_job is not None
-        ), 'BUG: Attempt to take a future job from channel: {}'.format(self.id)
+        ), "BUG: Attempt to take a future job from channel: {}".format(self.id)
         future_job = self.future_job
         self.future_job = None
         return future_job
@@ -265,7 +262,7 @@ class PoolMiningChannel(MiningChannel):
         """Stores future job ready for mining should a new block be found"""
         assert (
             self.future_job is None
-        ), 'BUG: Attempt to overwrite an existing future job: {}'.format(self.id)
+        ), "BUG: Attempt to overwrite an existing future job: {}".format(self.id)
         self.future_job = job
 
 
@@ -303,6 +300,7 @@ class ConnectionConfig:
         return (
             DownstreamConnectionFlags.REQUIRES_VERSION_ROLLING in self.setup_msg.flags
         )
+
 
 class Pool(ConnectionProcessor):
     """Represents a generic mining pool.
@@ -367,18 +365,18 @@ class Pool(ConnectionProcessor):
         self.accepted_shares = 0
         self.stale_shares = 0
         self._mining_channel_registry = None
-        
-    def make_handshake(self, connection: Connection): 
+
+    def make_handshake(self, connection: Connection):
         self.connection = connection
         self._mining_channel_registry = ChannelRegistry(connection.uid)
 
         connection.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        connection.sock.bind(('localhost', 2000))
+        connection.sock.bind(("localhost", 2000))
         connection.sock.listen(1)
         print("Listening for connections")
 
         connection.conn_target, addr = connection.sock.accept()
-        print('Accepted connection from', addr)
+        print("Accepted connection from", addr)
 
         # our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
         # private = x25519.X25519PrivateKey.from_private_bytes(our_private)
@@ -405,16 +403,18 @@ class Pool(ConnectionProcessor):
         our_handshakestate.read_message(frame, message_buffer)
 
         # when we do, respond
-        ## in the buffer, there should be Signature Noise Message, but we 
+        ## in the buffer, there should be Signature Noise Message, but we
         ## obviously don't really know how to construct it, so we'll skip it for localhost
         message_buffer = bytearray()
-        self.connection.cipherstates = our_handshakestate.write_message(b"", message_buffer)
+        self.connection.cipherstates = our_handshakestate.write_message(
+            b"", message_buffer
+        )
         self.connection.cipher_state = self.connection.cipherstates[1]
         self.connection.decrypt_cipher_state = self.connection.cipherstates[0]
 
         message_buffer = Connection.wrap(bytes(message_buffer))
         num_sent = connection.conn_target.send(message_buffer)  # rpc send
-        
+
     def reset_stats(self):
         self.accepted_submits = 0
         self.stale_submits = 0
@@ -440,7 +440,7 @@ class Pool(ConnectionProcessor):
             vardiff_desired_submits_per_sec=self.desired_submits_per_sec,
             on_vardiff_change=on_vardiff_change,
         )
-        self.__emit_aux_msg_on_bus('NEW MINING SESSION ()'.format(session))
+        self.__emit_aux_msg_on_bus("NEW MINING SESSION ()".format(session))
 
         return session
 
@@ -492,14 +492,13 @@ class Pool(ConnectionProcessor):
             # Simulate the new block hash by calculating sha256 of current time
             self.__generate_new_prev_hash()
 
-            self.__emit_aux_msg_on_bus('NEW_BLOCK: {}'.format(self.prev_hash.hex()))
+            self.__emit_aux_msg_on_bus("NEW_BLOCK: {}".format(self.prev_hash.hex()))
 
             for connection_processor in self.connection_processors.values():
                 connection_processor.on_new_block()
-                
+
     def __generate_new_prev_hash(self):
-        """Generates a new prevhash based on current time.
-        """
+        """Generates a new prevhash based on current time."""
         # TODO: this is not very precise as to events that would trigger this method in
         #  the same second would yield the same prev hash value,  we should consider
         #  specifying prev hash as a simple sequence number
@@ -511,10 +510,10 @@ class Pool(ConnectionProcessor):
             speed = self.meter_accepted.get_speed()
             submit_speed = self.meter_accepted.get_submit_per_secs()
             if speed is None or submit_speed is None:
-                self.__emit_aux_msg_on_bus('SPEED: N/A Gh/s, N/A submits/s')
+                self.__emit_aux_msg_on_bus("SPEED: N/A Gh/s, N/A submits/s")
             else:
                 self.__emit_aux_msg_on_bus(
-                    'SPEED: {0:.2f} Gh/s, {1:.4f} submits/s'.format(speed, submit_speed)
+                    "SPEED: {0:.2f} Gh/s, {1:.4f} submits/s".format(speed, submit_speed)
                 )
 
     def __emit_aux_msg_on_bus(self, msg):
@@ -525,7 +524,7 @@ class Pool(ConnectionProcessor):
 
     def _recv_msg(self):
         return self.connection.outgoing.get()
-    
+
     def terminate(self):
         super().terminate()
         for channel in self._mining_channel_registry.channels:
@@ -574,7 +573,7 @@ class Pool(ConnectionProcessor):
                     req_id=msg.req_id,
                     channel_id=mining_channel.id,
                     target=session.curr_target.target,
-                    extranonce_prefix=b'',
+                    extranonce_prefix=b"",
                     group_channel_id=0,  # pool currently doesn't support grouping
                 )
             )
@@ -610,7 +609,7 @@ class Pool(ConnectionProcessor):
         else:
             self._send_msg(
                 OpenMiningChannelError(
-                    msg.req_id, 'Cannot open mining channel: {}'.format(msg)
+                    msg.req_id, "Cannot open mining channel: {}".format(msg)
                 )
             )
 
@@ -621,8 +620,8 @@ class Pool(ConnectionProcessor):
         channel = self._mining_channel_registry.get_channel(msg.channel_id)
         channel = self._mining_channel_registry.get_channel(msg.channel_id)
 
-        assert(channel), "Channel {} is not defined".format(msg.channel_id)
-        
+        assert channel, "Channel {} is not defined".format(msg.channel_id)
+
         assert (
             channel.conn_uid == self.connection.uid
         ), "Channel conn UID({}) doesn't match current conn UID({})".format(
@@ -644,7 +643,7 @@ class Pool(ConnectionProcessor):
             resp_msg = SubmitSharesError(
                 channel.id,
                 sequence_number=msg.sequence_number,
-                error_code='Share rejected',
+                error_code="Share rejected",
             )
             self._send_msg(resp_msg)
             self.__emit_channel_msg_on_bus(resp_msg)
@@ -707,8 +706,8 @@ class Pool(ConnectionProcessor):
             channel_id=channel_id,
             job_id=future_job_id,
             prev_hash=self.prev_hash if self.prev_hash else 0,
-            min_ntime=0, #self.env.now,
-            nbits=0, # TODO: None?
+            min_ntime=0,  # self.env.now,
+            nbits=0,  # TODO: None?
         )
 
     @staticmethod
@@ -735,7 +734,7 @@ class Pool(ConnectionProcessor):
                 job_id=new_job.uid,
                 future_job=is_future_job,
                 version=1,
-                merkle_root=1, # Hash() ?
+                merkle_root=1,  # Hash() ?
             )
         elif isinstance(mining_channel.cfg, OpenExtendedMiningChannel):
             msg = NewExtendedMiningJob(
@@ -749,7 +748,7 @@ class Pool(ConnectionProcessor):
                 cb_suffix=CoinBaseSuffix(),
             )
         else:
-            assert False, 'Unsupported channel type: {}'.format(
+            assert False, "Unsupported channel type: {}".format(
                 mining_channel.cfg.channel_type
             )
 
@@ -757,4 +756,4 @@ class Pool(ConnectionProcessor):
 
     def __emit_channel_msg_on_bus(self, msg: ChannelMessage):
         """Helper method for reporting a channel oriented message on the debugging bus."""
-        self._emit_protocol_msg_on_bus('Channel ID: {}'.format(msg.channel_id), msg)
+        self._emit_protocol_msg_on_bus("Channel ID: {}".format(msg.channel_id), msg)
