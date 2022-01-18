@@ -1,38 +1,26 @@
+import asyncio  # new module
+import enum
+
 import numpy as np
 import simpy
 from event_bus import EventBus
 
 import primitives.coins as coins
+from primitives.connection import Connection
 from primitives.hashrate_meter import HashrateMeter
-from primitives.connection import Connection
-from primitives.pool import MiningSession, MiningJob, Pool
+from primitives.messages import (NewMiningJob, OpenMiningChannelError,
+                                 OpenStandardMiningChannel,
+                                 OpenStandardMiningChannelSuccess,
+                                 SetNewPrevHash, SetTarget, SetupConnection,
+                                 SetupConnectionError, SetupConnectionSuccess,
+                                 SubmitSharesError, SubmitSharesStandard,
+                                 SubmitSharesSuccess)
+from primitives.pool import MiningJob, MiningSession, Pool, PoolMiningChannel
 from primitives.protocol import ConnectionProcessor
-import asyncio # new module 
+from primitives.types import DownstreamConnectionFlags, ProtocolType
 
-import enum
-
-import primitives.coins as coins
-from primitives.connection import Connection
-from primitives.pool import MiningJob
-from primitives.messages import (
-    SetupConnection,
-    SetupConnectionSuccess,
-    SetupConnectionError,
-    OpenStandardMiningChannel,
-    OpenStandardMiningChannelSuccess,
-    OpenMiningChannelError,
-    SetNewPrevHash,
-    SetTarget,
-    NewMiningJob,
-    SubmitSharesStandard,
-    SubmitSharesSuccess,
-    SubmitSharesError,
-)
-from primitives.pool import PoolMiningChannel
-from primitives.types import ProtocolType, DownstreamConnectionFlags
 
 class Miner(ConnectionProcessor):
-    
     class States(enum.Enum):
         INIT = 0
         CONNECTION_SETUP = 1
@@ -58,7 +46,7 @@ class Miner(ConnectionProcessor):
         self.share_diff = None
         self.recv_loop_process = None
         self.simulate_luck = simulate_luck
-        
+
         self.state = self.States.INIT
         self.channel = None
         self.connection_config = None
@@ -68,14 +56,14 @@ class Miner(ConnectionProcessor):
         super().__init__(self.name, self.bus, connection)
 
     def get_actual_speed(self):
-        return self.device_information.get('speed_ghps') if self.is_mining else 0
+        return self.device_information.get("speed_ghps") if self.is_mining else 0
 
     def _send_msg(self, msg):
         self.connection.send_msg(msg)
 
-    async def mine(self, job: MiningJob):    
+    async def mine(self, job: MiningJob):
         share_diff = job.diff_target.to_difficulty()
-        avg_time = share_diff * 4.294967296 / self.device_information.get('speed_ghps')
+        avg_time = share_diff * 4.294967296 / self.device_information.get("speed_ghps")
 
         # Report the current hashrate at the beginning when of mining
         self.__emit_hashrate_msg_on_bus(job, avg_time)
@@ -87,21 +75,25 @@ class Miner(ConnectionProcessor):
             if self.is_mining:
                 self.work_meter.measure(share_diff)
                 self.__emit_hashrate_msg_on_bus(job, avg_time)
-                self.__emit_aux_msg_on_bus('solution found for job {}'.format(job.uid))
+                self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
 
                 self.submit_mining_solution(job)
             await asyncio.sleep(1.0)
 
-    def connect_to_pool(self, connection: Connection):        
+    def connect_to_pool(self, connection: Connection):
         connection.connect_to_pool()
 
         # Intializes MinerV2 instance
         self.setup_connection()
-        
-        self.__emit_aux_msg_on_bus('Connecting to pool {}:{}'.format(connection.pool_host, connection.pool_port))
+
+        self.__emit_aux_msg_on_bus(
+            "Connecting to pool {}:{}".format(
+                connection.pool_host, connection.pool_port
+            )
+        )
 
     def disconnect(self):
-        self.__emit_aux_msg_on_bus('Disconnecting from pool')
+        self.__emit_aux_msg_on_bus("Disconnecting from pool")
         if self.mine_proc:
             self.mine_proc.interrupt()
         # Mining is shutdown, terminate any protocol message processing
@@ -119,14 +111,14 @@ class Miner(ConnectionProcessor):
             diff_target=diff_target,
             enable_vardiff=False,
         )
-        self.__emit_aux_msg_on_bus('NEW MINING SESSION ()'.format(session))
+        self.__emit_aux_msg_on_bus("NEW MINING SESSION ()".format(session))
         return session
 
     def mine_on_new_job(self, job: MiningJob, flush_any_pending_work=True):
         """Start working on a new job
 
-         TODO implement more advanced flush policy handling (e.g. wait for the current
-          job to finish if flush_flush_any_pending_work is not required)
+        TODO implement more advanced flush policy handling (e.g. wait for the current
+         job to finish if flush_flush_any_pending_work is not required)
         """
         # Interrupt the mining process for now
         if self.mine_proc is not None:
@@ -148,7 +140,7 @@ class Miner(ConnectionProcessor):
         :return:
         """
         self.__emit_aux_msg_on_bus(
-            'mining with diff {} | speed {} Gh/s | avg share time {} | job uid {}'.format(
+            "mining with diff {} | speed {} Gh/s | avg share time {} | job uid {}".format(
                 job.diff_target.to_difficulty(),
                 self.work_meter.get_speed(),
                 avg_share_time,
@@ -168,14 +160,15 @@ class Miner(ConnectionProcessor):
                 flags=0,  # TODO:
                 endpoint_host=self.connection.pool_host,
                 endpoint_port=self.connection.pool_port,
-                vendor=self.device_information.get('vendor', 'unknown'),
+                vendor=self.device_information.get("vendor", "unknown"),
                 hardware_version=self.device_information.get(
-                    'hardware_version', 'unknown'
+                    "hardware_version", "unknown"
                 ),
-                firmware=self.device_information.get('firmware', 'unknown'),
-                device_id=self.device_information.get('device_id', ''),
+                firmware=self.device_information.get("firmware", "unknown"),
+                device_id=self.device_information.get("device_id", ""),
             )
         )
+
     class ConnectionConfig:
         """Stratum V2 connection configuration.
 
@@ -185,14 +178,12 @@ class Miner(ConnectionProcessor):
 
         def __init__(self, msg: SetupConnectionSuccess):
             self.setup_msg = msg
-            
+
     def _recv_msg(self):
         return self.connection.incoming.get()
 
     def disconnect(self):
-        """Downstream node may initiate disconnect
-
-        """
+        """Downstream node may initiate disconnect"""
         self.connection.disconnect()
 
     def _on_invalid_message(self, msg):
@@ -205,7 +196,7 @@ class Miner(ConnectionProcessor):
         req = OpenStandardMiningChannel(
             req_id=1,
             user_identity=self.name,
-            nominal_hashrate=self.device_information.get('speed_ghps') * 1e9,
+            nominal_hashrate=self.device_information.get("speed_ghps") * 1e9,
             max_target=self.diff_1_target,
             # Header only mining, now extranonce 2 size required
         )
@@ -218,7 +209,7 @@ class Miner(ConnectionProcessor):
         TODO: consider implementing reconnection attempt with exponential backoff or
          something similar
         """
-        self._emit_protocol_msg_on_bus('Connection setup failed', msg)
+        self._emit_protocol_msg_on_bus("Connection setup failed", msg)
 
     def visit_open_standard_mining_channel_success(
         self, msg: OpenStandardMiningChannelSuccess
@@ -227,9 +218,7 @@ class Miner(ConnectionProcessor):
         # req = self.request_registry.pop(msg.req_id)
 
         # if req is not None:
-        session = self.new_mining_session(
-            coins.Target(msg.target, self.diff_1_target)
-        )
+        session = self.new_mining_session(coins.Target(msg.target, self.diff_1_target))
         # TODO find some reasonable extraction of the channel configuration, for now,
         #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
         #  pair that provides complete information
@@ -254,7 +243,7 @@ class Miner(ConnectionProcessor):
     def visit_open_mining_channel_error(self, msg: OpenMiningChannelError):
         req = self.request_registry.pop(msg.req_id)
         self._emit_protocol_msg_on_bus(
-            'Open mining channel failed (orig request: {})'.format(req), msg
+            "Open mining channel failed (orig request: {})".format(req), msg
         )
 
     def visit_set_target(self, msg: SetTarget):
@@ -301,25 +290,25 @@ class Miner(ConnectionProcessor):
                 sequence_number=0,  # unique sequential identifier within the channel.
                 job_id=job.uid,
                 nonce=0,
-                ntime=0, #self.env.now,
+                ntime=0,  # self.env.now,
                 version=0,  # full nVersion field
             )
         )
 
     def _on_invalid_message(self, msg):
-        self._emit_protocol_msg_on_bus('Received invalid message', msg)
+        self._emit_protocol_msg_on_bus("Received invalid message", msg)
 
     def __is_channel_valid(self, msg):
         """Validates channel referenced in the message is the open channel of the miner"""
         if self.channel is None:
             bus_error_msg = (
-                'Mining Channel not established yet, received channel '
-                'message with channel ID({})'.format(msg.channel_id)
+                "Mining Channel not established yet, received channel "
+                "message with channel ID({})".format(msg.channel_id)
             )
             is_valid = False
             self._emit_protocol_msg_on_bus(bus_error_msg, msg)
         elif self.channel.channel_id != msg.channel_id:
-            bus_error_msg = 'Unknown channel (expected: {}, actual: {})'.format(
+            bus_error_msg = "Unknown channel (expected: {}, actual: {})".format(
                 self.channel.id, msg.channel_id
             )
             is_valid = False
@@ -328,5 +317,6 @@ class Miner(ConnectionProcessor):
             is_valid = True
 
         return is_valid
+
 
 # TODO: Move MiningChannel and session from Pool

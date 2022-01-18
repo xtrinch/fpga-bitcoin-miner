@@ -19,8 +19,8 @@ class Target:
         self.target = self.target // factor
 
     def __str__(self):
-        return '{}(diff={})'.format(type(self).__name__, self.to_difficulty())
-    
+        return "{}(diff={})".format(type(self).__name__, self.to_difficulty())
+
     def to_bytes(self):
         # TODO: convert to bytes
         return 1

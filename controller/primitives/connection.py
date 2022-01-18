@@ -1,30 +1,41 @@
 import random
+import socket
+import time
 from abc import ABC, abstractmethod
 
+import base58
+import ed25519
 import numpy as np
 import simpy
-from hashids import Hashids
-import socket
-import ed25519
-import base58
-from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
-from dissononce.processing.impl.handshakestate import HandshakeState
-from dissononce.processing.impl.symmetricstate import SymmetricState
-from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
-import time
+from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.processing.impl.handshakestate import HandshakeState
+from dissononce.processing.impl.symmetricstate import SymmetricState
+from hashids import Hashids
+
 from primitives.messages import Message
 
 SLUSHPOOL_CA_PUBKEY = "u95GEReVMjK6k5YqiSFNqqTnKU4ypU2Wm8awa6tmbmDmk1bWt"
+
 
 def gen_uid():
     hashids = Hashids()
     return hashids.encode(random.randint(0, 16777216))
 
+
 class Connection:
-    def __init__(self, type_name, port: str, mean_latency=0.01, latency_stddev_percent=10, pool_host='', pool_port=3336):
+    def __init__(
+        self,
+        type_name,
+        port: str,
+        mean_latency=0.01,
+        latency_stddev_percent=10,
+        pool_host="",
+        pool_port=3336,
+    ):
         self.type_name = type_name
         self.uid = gen_uid()
         self.port = port
@@ -32,7 +43,7 @@ class Connection:
         self.latency_stddev_percent = latency_stddev_percent
         self.conn_target = None
         self.sock = socket.socket()
-        if (type_name == 'miner'):
+        if type_name == "miner":
             self.sock.settimeout(1.0)
         self.pool_host = pool_host
         self.pool_port = pool_port
@@ -41,12 +52,12 @@ class Connection:
     def connect_to_pool(self):
         self.sock.connect((self.pool_host, self.pool_port))
 
-        self.connect_to_noise(self.sock, self.pool_host != 'localhost')
+        self.connect_to_noise(self.sock, self.pool_host != "localhost")
 
     def disconnect(self):
         # TODO: Review whether to use assert's or RuntimeErrors in simulation
         if self.conn_target is None:
-            raise RuntimeError('Not connected')
+            raise RuntimeError("Not connected")
         self.conn_target.disconnect(self)
         self.conn_target = None
 
@@ -54,10 +65,10 @@ class Connection:
         return self.conn_target is not None
 
     def send_msg(self, msg: Message):
-        print("MSG SEND: %s" %  msg)
-        ciphertext = self.cipher_state.encrypt_with_ad(b'', msg.to_bytes())
+        print("MSG SEND: %s" % msg)
+        ciphertext = self.cipher_state.encrypt_with_ad(b"", msg.to_bytes())
         final_message = Connection.wrap(ciphertext)
-        
+
         if self.conn_target:
             self.conn_target.send(final_message)
         else:
@@ -89,13 +100,15 @@ class Connection:
         ciphertext = sock.recv(4096)  # rpc recv
         frame, _ = Connection.unwrap(ciphertext)
         self.cipherstates = our_handshakestate.read_message(frame, message_buffer)
-        self.cipher_state = self.cipherstates[0];
+        self.cipher_state = self.cipherstates[0]
         self.decrypt_cipher_state = self.cipherstates[1]
 
         pool_static_server_key = our_handshakestate.rs.data
-        
-        if (verify_connection):
-            signature = SignatureMessage(message_buffer, pool_static_server_key, self.pool_host == 'localhost')
+
+        if verify_connection:
+            signature = SignatureMessage(
+                message_buffer, pool_static_server_key, self.pool_host == "localhost"
+            )
             signature.verify()
 
         print("Handshake done!")
@@ -114,13 +127,16 @@ class Connection:
         payload_length = int.from_bytes(length_prefix, byteorder="little")
         return (item[2 : 2 + payload_length], item[payload_length + 2 :])
 
+
 class SignatureMessage:
-    def __init__(self, raw_signature: bytes, noise_static_pubkey: bytes, is_localhost: bool):
+    def __init__(
+        self, raw_signature: bytes, noise_static_pubkey: bytes, is_localhost: bool
+    ):
         if not is_localhost:
             self.authority_key = base58.b58decode_check(SLUSHPOOL_CA_PUBKEY)
         else:
             self.authority_key = base58.b58decode_check(SLUSHPOOL_CA_PUBKEY)
-            
+
         self.noise_static_pubkey = noise_static_pubkey
         self.version = int.from_bytes(raw_signature[0:2], byteorder="little")
         self.valid_from = int.from_bytes(raw_signature[2:6], byteorder="little")

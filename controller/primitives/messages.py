@@ -1,16 +1,14 @@
 # see https://github.com/stratumv2/stratumv2/blob/master/messages.py it has some parsing already
 
 import typing
-from .protocol_types import *
+
 import stringcase
 
+from .protocol_types import *
+
 """Stratum V2 messages."""
-from primitives.types import (
-    Hash,
-    MerklePath,
-    CoinBasePrefix,
-    CoinBaseSuffix,
-)
+from primitives.types import CoinBasePrefix, CoinBaseSuffix, Hash, MerklePath
+
 
 class Message:
     """Generic message that accepts visitors and dispatches their processing."""
@@ -27,12 +25,12 @@ class Message:
     def __init__(self, req_id=None):
         self.req_id = req_id
 
-    def accept(self, visitor):        
+    def accept(self, visitor):
         """Call visitor method based on the actual message type."""
-        method_name = 'visit_{}'.format(stringcase.snakecase(type(self).__name__))
-        
+        method_name = "visit_{}".format(stringcase.snakecase(type(self).__name__))
+
         print(method_name)
-        
+
         try:
             visit_method = getattr(visitor, method_name)
         except AttributeError:
@@ -41,7 +39,8 @@ class Message:
         visit_method(self)
 
     def _format(self, content):
-        return '{}({})'.format(type(self).__name__, content)
+        return "{}({})".format(type(self).__name__, content)
+
 
 class ChannelMessage(Message):
     """Message specific for a channel identified by its channel_id"""
@@ -63,7 +62,7 @@ class SetupConnection(Message):
         vendor: str,
         hardware_version: str,
         firmware: str,
-        device_id: str = '',
+        device_id: str = "",
     ):
         self.protocol = protocol
         self.max_version = max_version
@@ -80,7 +79,7 @@ class SetupConnection(Message):
 
     def __str__(self):
         return self._format(
-            'protocol={}, max_version={}, min_version={}, flags={}, endpoint_host={}, endpoint_port={}, vendor={}, hardware_version={}, firmware={}, device_id={}'.format(
+            "protocol={}, max_version={}, min_version={}, flags={}, endpoint_host={}, endpoint_port={}, vendor={}, hardware_version={}, firmware={}, device_id={}".format(
                 self.protocol,
                 self.max_version,
                 self.min_version,
@@ -106,40 +105,61 @@ class SetupConnection(Message):
         firmware = STR0_255(self.firmware)
         device_id = STR0_255(self.device_id)
 
-        payload = protocol+min_version+max_version+flags+endpoint_host+endpoint_port+vendor+hardware_version+firmware+device_id
-        frame = FRAME(0x0,"SetupConnection",payload)
+        payload = (
+            protocol
+            + min_version
+            + max_version
+            + flags
+            + endpoint_host
+            + endpoint_port
+            + vendor
+            + hardware_version
+            + firmware
+            + device_id
+        )
+        frame = FRAME(0x0, "SetupConnection", payload)
 
-        return frame;
-    
+        return frame
+
     @staticmethod
     def from_bytes(bytes: bytearray):
         length_offset = 0
-        
-        protocol = bytes[0] # 1 byte
-        min_version = int.from_bytes(bytes[1:3], byteorder='little') # 2 bytes
-        max_version = int.from_bytes(bytes[3:5], byteorder='little') # 2 bytes
-        flags = int.from_bytes(bytes[5:9], byteorder='little') # 4 bytes
-        
-        endpoint_length = bytes[9]        
-        endpoint_host = bytes[10:10+endpoint_length].decode("utf-8") 
-        endpoint_port = int.from_bytes(bytes[10+endpoint_length:12+endpoint_length], byteorder='little')
+
+        protocol = bytes[0]  # 1 byte
+        min_version = int.from_bytes(bytes[1:3], byteorder="little")  # 2 bytes
+        max_version = int.from_bytes(bytes[3:5], byteorder="little")  # 2 bytes
+        flags = int.from_bytes(bytes[5:9], byteorder="little")  # 4 bytes
+
+        endpoint_length = bytes[9]
+        endpoint_host = bytes[10 : 10 + endpoint_length].decode("utf-8")
+        endpoint_port = int.from_bytes(
+            bytes[10 + endpoint_length : 12 + endpoint_length], byteorder="little"
+        )
         length_offset += endpoint_length
 
-        vendor_length = bytes[12+length_offset]
-        vendor = bytes[13+length_offset:13+length_offset+vendor_length].decode("utf-8") 
+        vendor_length = bytes[12 + length_offset]
+        vendor = bytes[13 + length_offset : 13 + length_offset + vendor_length].decode(
+            "utf-8"
+        )
         length_offset += vendor_length
 
-        hardware_version_length = bytes[13+length_offset]
-        hardware_version = bytes[14+length_offset:14+length_offset+hardware_version_length].decode("utf-8") 
+        hardware_version_length = bytes[13 + length_offset]
+        hardware_version = bytes[
+            14 + length_offset : 14 + length_offset + hardware_version_length
+        ].decode("utf-8")
         length_offset += hardware_version_length
 
-        firmware_length = bytes[14+length_offset]
-        firmware = bytes[15+length_offset:15+length_offset+firmware_length].decode("utf-8") 
+        firmware_length = bytes[14 + length_offset]
+        firmware = bytes[
+            15 + length_offset : 15 + length_offset + firmware_length
+        ].decode("utf-8")
         length_offset += firmware_length
 
-        device_id_length = bytes[15+length_offset]
-        device_id = bytes[16+length_offset:16+length_offset+device_id_length].decode("utf-8") 
-        
+        device_id_length = bytes[15 + length_offset]
+        device_id = bytes[
+            16 + length_offset : 16 + length_offset + device_id_length
+        ].decode("utf-8")
+
         msg = SetupConnection(
             protocol=protocol,
             min_version=min_version,
@@ -154,6 +174,7 @@ class SetupConnection(Message):
         )
         return msg
 
+
 class SetupConnectionSuccess(Message):
     def __init__(self, used_version: int, flags: int):
         self.used_version = used_version
@@ -162,25 +183,25 @@ class SetupConnectionSuccess(Message):
 
     def __str__(self):
         return self._format(
-            'used_version={}, flags={}'.format(
+            "used_version={}, flags={}".format(
                 self.used_version,
                 self.flags,
             )
         )
-            
+
     def to_bytes(self):
         used_version = U16(self.used_version)
         flags = U32(self.flags)
-        payload = used_version+flags
-    
-        frame = FRAME(0x0,"SetupConnectionSuccess",payload)
+        payload = used_version + flags
+
+        frame = FRAME(0x0, "SetupConnectionSuccess", payload)
         return frame
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        used_version = int.from_bytes(bytes[0:2], byteorder='little') # 2 bytes
-        flags = int.from_bytes(bytes[2:6], byteorder='little') # bytes
-        
+        used_version = int.from_bytes(bytes[0:2], byteorder="little")  # 2 bytes
+        flags = int.from_bytes(bytes[2:6], byteorder="little")  # bytes
+
         msg = SetupConnectionSuccess(
             used_version=used_version,
             flags=flags,
@@ -204,8 +225,7 @@ class OpenStandardMiningChannel(Message):
         nominal_hashrate: float,
         max_target: int,
     ):
-        """
-        """
+        """ """
         self.user_identity = user_identity
         self.nominal_hashrate = nominal_hashrate
         self.max_target = max_target
@@ -214,7 +234,7 @@ class OpenStandardMiningChannel(Message):
 
     def __str__(self):
         return self._format(
-            'req_id={}, user_identity={}, nominal_hashrate={}, max_target={}, new_job_class={}'.format(
+            "req_id={}, user_identity={}, nominal_hashrate={}, max_target={}, new_job_class={}".format(
                 self.req_id,
                 self.user_identity,
                 self.nominal_hashrate,
@@ -222,35 +242,38 @@ class OpenStandardMiningChannel(Message):
                 self.new_job_class,
             )
         )
-     
+
     def to_bytes(self):
         req_id = U32(self.req_id)
         user_identity = STR0_255(self.user_identity)
         nominal_hashrate = F32(self.nominal_hashrate)
         max_target = U256(self.max_target)
-        
-        payload = req_id+user_identity+nominal_hashrate+max_target
-    
-        frame = FRAME(0x0,"OpenStandardMiningChannel", payload)
+
+        payload = req_id + user_identity + nominal_hashrate + max_target
+
+        frame = FRAME(0x0, "OpenStandardMiningChannel", payload)
         return frame
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        req_id = int.from_bytes(bytes[0:4], byteorder='little')
-        
-        l=bytes[4]
-        
-        user_identity = bytes[5:5+l].decode("utf-8") 
-        nominal_hashrate = struct.unpack('<f', bytes[5+l:5+l+4])
-        max_target = int.from_bytes(bytes[5+l+4:5+l+4+4], byteorder='little')
+        req_id = int.from_bytes(bytes[0:4], byteorder="little")
+
+        l = bytes[4]
+
+        user_identity = bytes[5 : 5 + l].decode("utf-8")
+        nominal_hashrate = struct.unpack("<f", bytes[5 + l : 5 + l + 4])
+        max_target = int.from_bytes(
+            bytes[5 + l + 4 : 5 + l + 4 + 4], byteorder="little"
+        )
 
         msg = OpenStandardMiningChannel(
             req_id=req_id,
             user_identity=user_identity,
             nominal_hashrate=nominal_hashrate,
-            max_target=max_target
+            max_target=max_target,
         )
         return msg
+
 
 class OpenStandardMiningChannelSuccess(ChannelMessage):
     def __init__(
@@ -270,7 +293,7 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'req_id={}, channel_id={}, target={}, extranonce_prefix={}, group_channel_id={}'.format(
+            "req_id={}, channel_id={}, target={}, extranonce_prefix={}, group_channel_id={}".format(
                 self.req_id,
                 self.channel_id,
                 self.target,
@@ -278,24 +301,24 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
                 self.group_channel_id,
             )
         )
-        
+
     @staticmethod
     def from_bytes(bytes: bytearray):
-        req_id = int.from_bytes(bytes[0:4], byteorder='little')
-        channel_id = int.from_bytes(bytes[4:8], byteorder='little') # this is correct!!
-        target = int.from_bytes(bytes[9:9+31], byteorder='little')
-        
-        l = bytes[9+31]
-        
-        extranonce_prefix = int.from_bytes(bytes[41:41+l], byteorder='little')
-        group_channel_id = int.from_bytes(bytes[41+l:46+l], byteorder='little')
+        req_id = int.from_bytes(bytes[0:4], byteorder="little")
+        channel_id = int.from_bytes(bytes[4:8], byteorder="little")  # this is correct!!
+        target = int.from_bytes(bytes[9 : 9 + 31], byteorder="little")
+
+        l = bytes[9 + 31]
+
+        extranonce_prefix = int.from_bytes(bytes[41 : 41 + l], byteorder="little")
+        group_channel_id = int.from_bytes(bytes[41 + l : 46 + l], byteorder="little")
 
         msg = OpenStandardMiningChannelSuccess(
             req_id=req_id,
             channel_id=channel_id,
             target=target,
             extranonce_prefix=extranonce_prefix,
-            group_channel_id=group_channel_id
+            group_channel_id=group_channel_id,
         )
         return msg
 
@@ -305,14 +328,15 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         target = U256(self.target)
         extranonce_prefix = B0_32(self.extranonce_prefix)
         group_channel_id = U32(self.group_channel_id)
-        
-        payload = req_id+channel_id+target+extranonce_prefix+group_channel_id
-    
-        frame = FRAME(0x0,"OpenStandardMiningChannelSuccess", payload)
+
+        payload = req_id + channel_id + target + extranonce_prefix + group_channel_id
+
+        frame = FRAME(0x0, "OpenStandardMiningChannelSuccess", payload)
         return frame
-    
+
     def msg_type_name(self):
         return "OpenStandardMiningChannelSuccess"
+
 
 class OpenExtendedMiningChannel(OpenStandardMiningChannel):
     def __init__(self, min_extranonce_size: int, *args, **kwargs):
@@ -387,9 +411,9 @@ class SubmitSharesStandard(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, job_id={}'.format(self.channel_id, self.job_id)
+            "channel_id={}, job_id={}".format(self.channel_id, self.job_id)
         )
-        
+
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         sequence_number = U32(self.sequence_number)
@@ -398,19 +422,19 @@ class SubmitSharesStandard(ChannelMessage):
         ntime = U32(self.ntime)
         version = U32(self.version)
 
-        payload = channel_id+sequence_number+job_id+nonce+ntime+version
-    
+        payload = channel_id + sequence_number + job_id + nonce + ntime + version
+
         frame = FRAME(0x0, "SubmitSharesStandard", payload)
         return frame
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        channel_id = int.from_bytes(bytes[0:4], byteorder='little')
-        sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
-        job_id = int.from_bytes(bytes[8:12], byteorder='little')
-        nonce = int.from_bytes(bytes[12:16], byteorder='little')
-        ntime = int.from_bytes(bytes[16:20], byteorder='little')
-        version = int.from_bytes(bytes[20:24], byteorder='little')
+        channel_id = int.from_bytes(bytes[0:4], byteorder="little")
+        sequence_number = int.from_bytes(bytes[4:8], byteorder="little")
+        job_id = int.from_bytes(bytes[8:12], byteorder="little")
+        nonce = int.from_bytes(bytes[12:16], byteorder="little")
+        ntime = int.from_bytes(bytes[16:20], byteorder="little")
+        version = int.from_bytes(bytes[20:24], byteorder="little")
 
         msg = SubmitSharesStandard(
             channel_id=channel_id,
@@ -418,9 +442,10 @@ class SubmitSharesStandard(ChannelMessage):
             job_id=job_id,
             nonce=nonce,
             ntime=ntime,
-            version=version
+            version=version,
         )
         return msg
+
 
 class SubmitSharesExtended(SubmitSharesStandard):
     def __init__(self, extranonce, *args, **kwargs):
@@ -443,31 +468,36 @@ class SubmitSharesSuccess(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, last_seq_num={}, accepted_submits={}, accepted_shares={}'.format(
+            "channel_id={}, last_seq_num={}, accepted_submits={}, accepted_shares={}".format(
                 self.channel_id,
                 self.last_sequence_number,
                 self.new_submits_accepted_count,
                 self.new_shares_sum,
             )
         )
-        
+
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         last_sequence_number = U32(self.last_sequence_number)
         new_submits_accepted_count = U32(self.new_submits_accepted_count)
         new_shares_sum = U32(self.new_shares_sum)
 
-        payload = channel_id+last_sequence_number+new_submits_accepted_count+new_shares_sum
-    
+        payload = (
+            channel_id
+            + last_sequence_number
+            + new_submits_accepted_count
+            + new_shares_sum
+        )
+
         frame = FRAME(0x0, "SubmitSharesSuccess", payload)
         return frame
 
     @staticmethod
     def from_bytes(bytes: bytearray):
-        channel_id = int.from_bytes(bytes[0:4], byteorder='little')
-        last_sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
-        new_submits_accepted_count = int.from_bytes(bytes[8:12], byteorder='little')
-        new_shares_sum = int.from_bytes(bytes[12:16], byteorder='little')
+        channel_id = int.from_bytes(bytes[0:4], byteorder="little")
+        last_sequence_number = int.from_bytes(bytes[4:8], byteorder="little")
+        new_submits_accepted_count = int.from_bytes(bytes[8:12], byteorder="little")
+        new_shares_sum = int.from_bytes(bytes[12:16], byteorder="little")
 
         msg = SubmitSharesSuccess(
             channel_id=channel_id,
@@ -486,41 +516,42 @@ class SubmitSharesError(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, sequence_number={}, error_code={}'.format(
+            "channel_id={}, sequence_number={}, error_code={}".format(
                 self.channel_id, self.sequence_number, self.error_code
             )
         )
-        
+
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         sequence_number = U32(self.sequence_number)
         error_code = STR0_255(self.error_code)
-        
-        payload = channel_id+sequence_number+error_code
-    
+
+        payload = channel_id + sequence_number + error_code
+
         frame = FRAME(0x0, "SubmitSharesError", payload)
         return frame
-    
+
     @staticmethod
     def from_bytes(bytes: bytearray):
-        channel_id=int.from_bytes(bytes[:4], byteorder='little')
-        sequence_number = int.from_bytes(bytes[4:8], byteorder='little')
+        channel_id = int.from_bytes(bytes[:4], byteorder="little")
+        sequence_number = int.from_bytes(bytes[4:8], byteorder="little")
         error_code_length = bytes[8]
-        error_code = bytes[9:9+error_code_length].decode("utf-8")
-            
+        error_code = bytes[9 : 9 + error_code_length].decode("utf-8")
+
         msg = SubmitSharesError(
             channel_id=channel_id,
             sequence_number=sequence_number,
             error_code=error_code,
         )
         return msg
-    
+
+
 class NewMiningJob(ChannelMessage):
     def __init__(
         self,
         channel_id: int,
         job_id: int,
-        future_job: bool, # If is set to False, we MUST start to mine as soon as possible
+        future_job: bool,  # If is set to False, we MUST start to mine as soon as possible
         version: int,
         merkle_root: Hash,
     ):
@@ -532,8 +563,12 @@ class NewMiningJob(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, job_id={}, future_job={}, version={}, merkle_root={}'.format(
-                self.channel_id, self.job_id, self.future_job, self.version, self.merkle_root
+            "channel_id={}, job_id={}, future_job={}, version={}, merkle_root={}".format(
+                self.channel_id,
+                self.job_id,
+                self.future_job,
+                self.version,
+                self.merkle_root,
             )
         )
 
@@ -543,28 +578,29 @@ class NewMiningJob(ChannelMessage):
         future_job = BOOL(self.future_job)
         version = U32(self.version)
         merkle_root = U32(self.merkle_root)
-        
-        payload = channel_id+job_id+future_job+version+merkle_root
-    
+
+        payload = channel_id + job_id + future_job + version + merkle_root
+
         frame = FRAME(0x0, "NewMiningJob", payload)
         return frame
-    
+
     @staticmethod
     def from_bytes(bytes: bytearray):
-        channel_id=int.from_bytes(bytes[:4], byteorder='little')
-        job_id = int.from_bytes(bytes[4:8], byteorder='little')
+        channel_id = int.from_bytes(bytes[:4], byteorder="little")
+        job_id = int.from_bytes(bytes[4:8], byteorder="little")
         future_job = bytes[8]
-        version = int.from_bytes(bytes[9:13], byteorder='little')
+        version = int.from_bytes(bytes[9:13], byteorder="little")
         merkle_root = bytes[13:17]
-            
+
         msg = NewMiningJob(
             channel_id=channel_id,
             job_id=job_id,
             future_job=future_job,
             version=version,
-            merkle_root=merkle_root
+            merkle_root=merkle_root,
         )
         return msg
+
 
 class NewExtendedMiningJob(ChannelMessage):
     def __init__(
@@ -590,12 +626,7 @@ class NewExtendedMiningJob(ChannelMessage):
 
 class SetNewPrevHash(ChannelMessage):
     def __init__(
-        self, 
-        channel_id: int, 
-        job_id: int, 
-        prev_hash: Hash, 
-        min_ntime: int, 
-        nbits: int
+        self, channel_id: int, job_id: int, prev_hash: Hash, min_ntime: int, nbits: int
     ):
         self.channel_id = channel_id
         self.prev_hash = prev_hash
@@ -606,35 +637,37 @@ class SetNewPrevHash(ChannelMessage):
 
     def __str__(self):
         return self._format(
-            'channel_id={}, job_id={}'.format(self.channel_id, self.job_id)
+            "channel_id={}, job_id={}, prev_hash={}, min_ntime={}, nbits={}".format(
+                self.channel_id, self.job_id, self.prev_hash, self.min_ntime, self.nbits
+            )
         )
-        
+
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         job_id = U32(self.job_id)
         prev_hash = U256(self.prev_hash)
         min_ntime = U32(self.min_ntime)
         nbits = U32(self.nbits)
-        
-        payload = channel_id+job_id+prev_hash+min_ntime+nbits
-    
+
+        payload = channel_id + job_id + prev_hash + min_ntime + nbits
+
         frame = FRAME(0x0, "SetNewPrevHash", payload)
         return frame
-    
+
     @staticmethod
     def from_bytes(bytes: bytearray):
-        channel_id=int.from_bytes(bytes[:4], byteorder='little')
-        job_id = int.from_bytes(bytes[4:8], byteorder='little')
-        prev_hash = int.from_bytes(bytes[8:40], byteorder='little')
-        min_ntime = int.from_bytes(bytes[40:44], byteorder='little')
-        nbits = int.from_bytes(bytes[44:48], byteorder='little')
-            
+        channel_id = int.from_bytes(bytes[:4], byteorder="little")
+        job_id = int.from_bytes(bytes[4:8], byteorder="little")
+        prev_hash = int.from_bytes(bytes[8:40], byteorder="little")
+        min_ntime = int.from_bytes(bytes[40:44], byteorder="little")
+        nbits = int.from_bytes(bytes[44:48], byteorder="little")
+
         msg = SetNewPrevHash(
             channel_id=channel_id,
             job_id=job_id,
             prev_hash=prev_hash,
             min_ntime=min_ntime,
-            nbits=nbits
+            nbits=nbits,
         )
         return msg
 
@@ -701,22 +734,19 @@ class SetCustomMiningJobError(ChannelMessage):
 
 
 class SetTarget(ChannelMessage):
-    def __init__(
-        self, 
-        channel_id: int, 
-        max_target: int
-    ):
+    def __init__(self, channel_id: int, max_target: int):
         self.max_target = max_target
         super().__init__(channel_id=channel_id)
 
     def to_bytes(self):
         channel_id = U32(self.channel_id)
         max_target = U256(self.max_target)
-        
-        payload = channel_id+max_target
-    
+
+        payload = channel_id + max_target
+
         frame = FRAME(0x0, "SetTarget", payload)
         return frame
+
 
 class Reconnect(Message):
     def __init__(self, new_host: str, new_port: int):
@@ -731,16 +761,17 @@ class SetGroupChannel(Message):
         self.channel_ids = channel_ids
         super().__init__()
 
+
 msg_type_class_map = {
     0x00: SetupConnection,
     0x01: SetupConnectionSuccess,
     0x02: SetupConnectionError,
     0x10: OpenStandardMiningChannel,
     0x11: OpenStandardMiningChannelSuccess,
-    0x1e: NewMiningJob,
+    0x1E: NewMiningJob,
     0x21: SetTarget,
     0x20: SetNewPrevHash,
-    0x1a: SubmitSharesStandard,
-    0x1c: SubmitSharesSuccess,
-    0x1d: SubmitSharesError,
+    0x1A: SubmitSharesStandard,
+    0x1C: SubmitSharesSuccess,
+    0x1D: SubmitSharesError,
 }

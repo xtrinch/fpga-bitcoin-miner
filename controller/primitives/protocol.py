@@ -1,23 +1,26 @@
 """Generic protocol primitives"""
-import stringcase
+import asyncio  # new module
 from abc import abstractmethod
 
 import simpy
+import stringcase
 from event_bus import EventBus
 
 from primitives.connection import Connection
 from primitives.messages import (
-msg_type_class_map, 
-SubmitSharesStandard, 
-SetupConnection, 
-SetupConnectionSuccess, 
-SetupConnectionError, 
-Message, 
-OpenStandardMiningChannel, 
-NewMiningJob, SetTarget, 
-SetNewPrevHash, 
-OpenStandardMiningChannelSuccess)
-import asyncio # new module 
+    Message,
+    NewMiningJob,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    SetNewPrevHash,
+    SetTarget,
+    SetupConnection,
+    SetupConnectionError,
+    SetupConnectionSuccess,
+    SubmitSharesStandard,
+    msg_type_class_map,
+)
+
 
 class RequestRegistry:
     """Generates unique request ID for messages and provides simple registry"""
@@ -31,7 +34,7 @@ class RequestRegistry:
         req.req_id = self.__next_req_id()
         assert (
             self.requests.get(req.req_id) is None
-        ), 'BUG: request ID already present {}'.format(req.req_id)
+        ), "BUG: request ID already present {}".format(req.req_id)
         self.requests[req.req_id] = req
 
     def pop(self, req_id):
@@ -46,9 +49,7 @@ class RequestRegistry:
 class ConnectionProcessor:
     """Receives and dispatches a message on a single connection."""
 
-    def __init__(
-        self, name: str, bus: EventBus, connection: Connection
-    ):
+    def __init__(self, name: str, bus: EventBus, connection: Connection):
         self.name = name
         self.bus = bus
         self.connection = connection
@@ -78,7 +79,7 @@ class ConnectionProcessor:
         print(("{}: {}").format(self.name, log_msg))
 
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
-        self._emit_aux_msg_on_bus('{}: {}'.format(log_msg, msg))
+        self._emit_aux_msg_on_bus("{}: {}".format(log_msg, msg))
 
     def receive_one(self):
         # Receive process for a particular connection dispatches each received message
@@ -88,27 +89,27 @@ class ConnectionProcessor:
                 ciphertext = self.connection.conn_target.recv(8192)
             else:
                 ciphertext = self.connection.sock.recv(8192)
-            
+
             if not ciphertext:
-                raise Exception('Closed connection')
-            
+                raise Exception("Closed connection")
+
             frame, _ = Connection.unwrap(ciphertext)
-            
-            raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b'', frame)
-    
+
+            raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b"", frame)
+
             # plaintext is a frame
             extension_type = raw[0:1]
             msg_type = raw[2]
-            msg_length = raw[3:5] #U24
-    
+            msg_length = raw[3:5]  # U24
+
             # TODO: find a more concise way of doing this
             msg = None
-            raw = raw[6:] # remove the common bytes
-            
+            raw = raw[6:]  # remove the common bytes
+
             msg_class = msg_type_class_map[msg_type]
             msg = msg_class.from_bytes(raw)
 
-            print('MSG RCV: %s' % msg)
+            print("MSG RCV: %s" % msg)
 
             try:
                 msg.accept(self)
@@ -118,11 +119,10 @@ class ConnectionProcessor:
                     msg,
                 )
         except simpy.Interrupt:
-            print('DISCONNECTED')
-                        
+            print("DISCONNECTED")
+
     async def receive_loop(self):
-        """Receive process for a particular connection dispatches each received message
-        """
+        """Receive process for a particular connection dispatches each received message"""
         while True:
             try:
                 self.receive_one()

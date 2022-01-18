@@ -3,6 +3,7 @@ import binascii
 import ctypes
 import struct
 
+
 def BOOL(bool):
 
     if bool:

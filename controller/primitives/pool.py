@@ -1,36 +1,36 @@
 """Generic pool module"""
+import base64
 import hashlib
+import socket
 
 import numpy as np
 import simpy
-from event_bus import EventBus
-
-import primitives.coins as coins
-from primitives.hashrate_meter import HashrateMeter
-from primitives.protocol import ConnectionProcessor
-from primitives.connection import Connection
-import socket
-import base64
-from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
-from dissononce.processing.impl.handshakestate import HandshakeState
-from dissononce.processing.impl.symmetricstate import SymmetricState
-from dissononce.processing.impl.cipherstate import CipherState
+from cryptography.hazmat.primitives.asymmetric import x25519
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
-from cryptography.hazmat.primitives.asymmetric import x25519
+from dissononce.processing.handshakepatterns.interactive.NX import \
+    NXHandshakePattern
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.processing.impl.handshakestate import HandshakeState
+from dissononce.processing.impl.symmetricstate import SymmetricState
+from event_bus import EventBus
+
+import primitives.coins as coins
+from primitives.connection import Connection
+from primitives.hashrate_meter import HashrateMeter
+from primitives.protocol import ConnectionProcessor
 
 """Stratum V2 pool implementation
 
 """
-import primitives.coins as coins
-from primitives.protocol import ConnectionProcessor
-from primitives.messages import *
-from primitives.types import (
-    DownstreamConnectionFlags,
-    UpstreamConnectionFlags,
-)
 import random
+
+import primitives.coins as coins
+from primitives.messages import *
+from primitives.protocol import ConnectionProcessor
+from primitives.types import DownstreamConnectionFlags, UpstreamConnectionFlags
+
 
 class MiningJob:
     """This class allows the simulation to track per job difficulty target for
