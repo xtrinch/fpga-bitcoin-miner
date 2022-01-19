@@ -32,14 +32,12 @@ class Connection:
         self,
         type_name,
         port: str,
-        latency_stddev_percent=10,
         pool_host="",
         pool_port=3336,
     ):
         self.type_name = type_name
         self.uid = gen_uid()
         self.port = port
-        self.latency_stddev_percent = latency_stddev_percent
         self.conn_target = None
         self.sock = socket.socket()
         if type_name == "miner":
