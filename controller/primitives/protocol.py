@@ -110,7 +110,10 @@ class ConnectionProcessor:
             msg_class = msg_type_class_map[msg_type]
             msg = msg_class.from_bytes(raw)
 
-            print(f"{Fore.GREEN}MSG RCV: %s{Style.RESET_ALL}" % msg)
+            print(
+                f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"
+                % msg
+            )
 
             try:
                 msg.accept(self)
@@ -128,7 +131,6 @@ class ConnectionProcessor:
             try:
                 self.receive_one()
             except Exception as e:
-                print(e)
-                await asyncio.sleep(2.5)
+                # print(e)
                 continue
             await asyncio.sleep(0)

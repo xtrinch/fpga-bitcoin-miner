@@ -3,6 +3,7 @@ import enum
 
 import numpy as np
 import simpy
+from colorama import Fore, Style
 from event_bus import EventBus
 
 import primitives.coins as coins
@@ -41,7 +42,7 @@ class Miner(ConnectionProcessor):
         connection: Connection,
         simulate_luck=True,
         *args,
-        **kwargs
+        **kwargs,
     ):
         self.name = name
         self.bus = bus
@@ -158,7 +159,10 @@ class Miner(ConnectionProcessor):
         self.is_mining = is_mining
 
     def __emit_aux_msg_on_bus(self, msg: str):
-        print(("{}: {}").format(self.name, msg))
+        print(
+            f"{Fore.BLUE}{Style.BRIGHT}%s: {Style.NORMAL}%s{Style.RESET_ALL}"
+            % (self.name, msg)
+        )
 
     def __emit_hashrate_msg_on_bus(self, job: MiningJob, avg_share_time):
         """Reports hashrate statistics on the message bus
@@ -167,7 +171,7 @@ class Miner(ConnectionProcessor):
         :return:
         """
         self.__emit_aux_msg_on_bus(
-            "mining with difficulty {} | speed {} Gh/s | avg share time {} | job uid {}".format(
+            "mining with diff. {} | speed {} Gh/s | avg share time {} | job uid {}".format(
                 job.diff_target.to_difficulty(),
                 self.work_meter.get_speed(),
                 avg_share_time,

@@ -30,8 +30,6 @@ class Message:
         """Call visitor method based on the actual message type."""
         method_name = "visit_{}".format(stringcase.snakecase(type(self).__name__))
 
-        print(method_name)
-
         try:
             visit_method = getattr(visitor, method_name)
         except AttributeError:
