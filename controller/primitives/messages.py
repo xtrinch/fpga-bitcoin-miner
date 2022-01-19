@@ -61,6 +61,13 @@ class ChannelMessage(Message):
         super().__init__(*args, **kwargs)
 
 
+# Initiates the connection. This MUST be the first message sent by the client on the newly
+# opened connection. Server MUST respond with either a SetupConnection.Success or
+# SetupConnection.Error message. Clients that are not configured to provide telemetry data
+# to the upstream node SHOULD set device_id to 0-length strings. However, they MUST always
+# set vendor to a string describing the manufacturer/developer and firmware version and
+# SHOULD always set hardware_version to a string describing, at least, the particular
+# hardware/software package in use.
 class SetupConnection(Message):
     def __init__(
         self,
@@ -75,10 +82,23 @@ class SetupConnection(Message):
         firmware: str,
         device_id: str = "",
     ):
+        # 0 = Mining Protocol
+        # 1 = Job Negotiation Protocol
+        # 2 = Template Distribution Protocol
+        # 3 = Job Distribution Protocol
         self.protocol = protocol
+
+        # The minimum protocol version the client supports (currently must be 2).
         self.max_version = max_version
+
+        # The maximum protocol version the client supports (currently must be 2).
         self.min_version = min_version
+
+        # Flags indicating optional protocol features the client supports. Each protocol
+        # from protocol field has its own values/flags.
         self.flags = flags
+
+        # ASCII text indicating the hostname or IP address.
         self.endpoint_host = endpoint_host
         self.endpoint_port = endpoint_port
         # Device information
@@ -184,9 +204,16 @@ class SetupConnection(Message):
         return msg
 
 
+# Response to SetupConnection message if the server accepts the connection. The client is
+# required to verify the set of feature flags that the server supports and act accordingly.
 class SetupConnectionSuccess(Message):
     def __init__(self, used_version: int, flags: int):
+        # Selected version proposed by the connecting node that the upstream node supports.
+        # This version will be used on the connection for the rest of its life.
         self.used_version = used_version
+
+        # Flags indicating optional protocol features the server supports. Each protocol from
+        # protocol field has its own values/flags.
         self.flags = flags
         super().__init__()
 
@@ -222,7 +249,10 @@ class SetupConnectionSuccess(Message):
 # message with a particular error code prior to closing the connection
 class SetupConnectionError(Message):
     def __init__(self, flags: list, error_code: str):
+        # Flags indicating features causing an error.
         self.flags = flags
+
+        # Human-readable error code(s). See Error Codes section, below.
         self.error_code = error_code
         super().__init__()
 
@@ -264,8 +294,11 @@ class OpenStandardMiningChannel(Message):
         nominal_hashrate: float,
         max_target: int,
     ):
-        """ """
+        # Unconstrained sequence of bytes. Whatever is needed by upstream node to identify/authenticate
+        # the client, e.g. “braiinstest.worker1”. Additional restrictions can be imposed by the upstream
+        # node (e.g. a pool). It is highly recommended that UTF-8 encoding is used.
         self.user_identity = user_identity
+
         # Expected hash rate of the device (or cumulative hashrate on the channel if multiple devices
         # are connected downstream) in h/s
         self.nominal_hashrate = nominal_hashrate
@@ -321,6 +354,7 @@ class OpenStandardMiningChannel(Message):
         return msg
 
 
+# Sent as a response for opening a standard channel, if successful.
 class OpenStandardMiningChannelSuccess(ChannelMessage):
     def __init__(
         self,
@@ -330,10 +364,22 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         extranonce_prefix: bytes,
         group_channel_id: int,
     ):
+        # Client-specified request ID from OpenStandardMiningChannel message, so that the client
+        # can pair responses with open channel requests
         self.req_id = req_id
+
+        # Initial target for the mining channel
         self.target = target
+
+        # Newly assigned identifier of the channel, stable for the whole lifetime of the connection.
+        # E.g. it is used for broadcasting new jobs by NewExtendedMiningJob
         self.channel_id = channel_id
+
+        # Group channel into which the new channel belongs. See SetGroupChannel for details
         self.group_channel_id = group_channel_id
+
+        # Bytes used as implicit first part of extranonce for the scenario when extended job is
+        # served by the upstream node for a set of standard channels that belong to the same group.
         self.extranonce_prefix = extranonce_prefix
         super().__init__(channel_id=channel_id, req_id=req_id)
 
@@ -380,33 +426,17 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
         return payload
 
 
-class OpenExtendedMiningChannel(OpenStandardMiningChannel):
-    def __init__(self, min_extranonce_size: int, *args, **kwargs):
-        self.min_extranonce_size = min_extranonce_size
-        self.new_job_class = NewExtendedMiningJob
-        super().__init__(*args, **kwargs)
-
-
-class OpenExtendedMiningChannelSuccess(ChannelMessage):
-    def __init__(
-        self,
-        req_id,
-        channel_id: int,
-        target: int,
-        extranonce_size: int,
-        extranonce_prefix: bytes,
-    ):
-        self.target = target
+# Changes downstream node’s extranonce prefix. It is applicable for all jobs sent
+# after this message on a given channel (both jobs provided by the upstream or jobs
+# introduced by SetCustomMiningJob message). This message is applicable only for
+# explicitly opened extended channels or standard channels (not group channels).
+class SetExtranoncePrefix(ChannelMessage):
+    def __init__(self, channel_id: int, extranonce_prefix: bytes):
+        # Bytes used as implicit first part of extranonce
         self.extranonce_prefix = extranonce_prefix
-        self.extranonce_size = extranonce_size
-        super().__init__(channel_id=channel_id, req_id=req_id)
 
-
-class OpenMiningChannelError(Message):
-    def __init__(self, req_id, error_code: str):
-        self.req_id = req_id
-        self.error_code = error_code
-        super().__init__(req_id)
+        # Extended or standard channel identifier
+        super().__init__(channel_id=channel_id)
 
 
 # Client notifies the server about changes on the specified channel.
@@ -419,24 +449,26 @@ class UpdateChannel(ChannelMessage):
         super().__init__(channel_id=channel_id)
 
 
+# Sent only when UpdateChannel message is invalid. When it is accepted by the
+# server, no response is sent back.
 class UpdateChannelError(ChannelMessage):
     def __init__(self, channel_id: int, error_code: str):
         self.error_code = error_code
         super().__init__(channel_id=channel_id)
 
 
+# Client -> Server, Server -> Client
+# Client sends this message when it ends its operation. The server MUST stop sending
+# messages for the channel. A proxy MUST send this message on behalf of all opened
+# channels from a downstream connection in case of downstream connection closure.
 class CloseChannel(ChannelMessage):
     def __init__(self, channel_id: int, reason_code: str):
         self.reason_code = reason_code
         super().__init__(channel_id=channel_id)
 
 
-class SetExtranoncePrefix(ChannelMessage):
-    def __init__(self, channel_id: int, extranonce_prefix: bytes):
-        self.extranonce_prefix = extranonce_prefix
-        super().__init__(channel_id=channel_id)
-
-
+# Client -> Server
+# Client sends result of its hashing work to the server
 class SubmitSharesStandard(ChannelMessage):
     def __init__(
         self,
@@ -447,10 +479,21 @@ class SubmitSharesStandard(ChannelMessage):
         ntime: int,
         version: int,
     ):
+        # Unique sequential identifier of the submit within the channel
         self.sequence_number = sequence_number
+
+        # Identifier of the job as provided by NewMiningJob or NewExtendedMiningJob message
         self.job_id = job_id
+
+        # Nonce leading to the hash being submitted
         self.nonce = nonce
+
+        # The nTime field in the block header. This MUST be greater than or equal to the
+        # header_timestamp field in the latest SetNewPrevHash message and lower than or
+        # equal to that value plus the number of seconds since the receipt of that message.
         self.ntime = ntime
+
+        # Full nVersion field
         self.version = version
         super().__init__(channel_id)
 
@@ -491,12 +534,9 @@ class SubmitSharesStandard(ChannelMessage):
         return msg
 
 
-class SubmitSharesExtended(SubmitSharesStandard):
-    def __init__(self, extranonce, *args, **kwargs):
-        self.extranonce = extranonce
-        super().__init__(*args, **kwargs)
-
-
+# Response to SubmitShares or SubmitSharesExtended, accepting results from the miner.
+# Because it is a common case that shares submission is successful, this response can
+# be provided for multiple SubmitShare messages aggregated together.
 class SubmitSharesSuccess(ChannelMessage):
     def __init__(
         self,
@@ -505,8 +545,13 @@ class SubmitSharesSuccess(ChannelMessage):
         new_submits_accepted_count: int,
         new_shares_sum: int,
     ):
+        # Most recent sequence number with a correct result
         self.last_sequence_number = last_sequence_number
+
+        # Count of new submits acknowledged within this batch
         self.new_submits_accepted_count = new_submits_accepted_count
+
+        # Sum of shares acknowledged within this batch
         self.new_shares_sum = new_shares_sum
         super().__init__(channel_id)
 
@@ -660,6 +705,7 @@ class NewMiningJob(ChannelMessage):
         return msg
 
 
+# Server -> Client, broadcast
 # Prevhash is distributed whenever a new block is detected in the network by an upstream
 # node. This message MAY be shared by all downstream nodes (sent only once to each
 # channel group). Clients MUST immediately start to mine on the provided prevhash. When
@@ -676,13 +722,15 @@ class SetNewPrevHash(ChannelMessage):
         # provided multiple jobs for the next block height (e.g. an empty block or a block
         # with transactions that are complementary to the set of transactions present in
         # the current block template).
-
         self.job_id = job_id
-        # Previous block’s hash, block header field
 
+        # Previous block’s hash, block header field
         self.prev_hash = prev_hash
+
         # Smallest nTime value available for hashing.
         self.min_ntime = min_ntime
+
+        # Block header field
         self.nbits = nbits
         super().__init__(channel_id)
 
@@ -835,6 +883,7 @@ class SetGroupChannel(Message):
         super().__init__()
 
 
+# NOT USED
 # Extended and group channels only
 class NewExtendedMiningJob(ChannelMessage):
     def __init__(
@@ -856,6 +905,51 @@ class NewExtendedMiningJob(ChannelMessage):
         self.cb_prefix = cb_prefix
         self.cb_suffix = cb_suffix
         super().__init__(channel_id=channel_id)
+
+
+# NOT USED
+# Similar to OpenStandardMiningChannel but requests to open an extended channel instead
+# of standard channel
+class OpenExtendedMiningChannel(OpenStandardMiningChannel):
+    def __init__(self, min_extranonce_size: int, *args, **kwargs):
+        self.min_extranonce_size = min_extranonce_size
+        self.new_job_class = NewExtendedMiningJob
+        super().__init__(*args, **kwargs)
+
+
+# NOT USED
+# Sent as a response for opening an extended channel
+class OpenExtendedMiningChannelSuccess(ChannelMessage):
+    def __init__(
+        self,
+        req_id,
+        channel_id: int,
+        target: int,
+        extranonce_size: int,
+        extranonce_prefix: bytes,
+    ):
+        self.target = target
+        self.extranonce_prefix = extranonce_prefix
+        self.extranonce_size = extranonce_size
+        super().__init__(channel_id=channel_id, req_id=req_id)
+
+
+# NOT USED
+# Sent as a response for opening an extended channel
+class OpenMiningChannelError(Message):
+    def __init__(self, req_id, error_code: str):
+        self.req_id = req_id
+        self.error_code = error_code
+        super().__init__(req_id)
+
+
+# NOT USED
+# Only relevant for extended channels. The message is the same as SubmitShares,
+# with some additional fields
+class SubmitSharesExtended(SubmitSharesStandard):
+    def __init__(self, extranonce, *args, **kwargs):
+        self.extranonce = extranonce
+        super().__init__(*args, **kwargs)
 
 
 msg_type_class_map = {

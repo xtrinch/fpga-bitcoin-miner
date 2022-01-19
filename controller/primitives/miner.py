@@ -8,13 +8,20 @@ from event_bus import EventBus
 import primitives.coins as coins
 from primitives.connection import Connection
 from primitives.hashrate_meter import HashrateMeter
-from primitives.messages import (NewMiningJob, OpenMiningChannelError,
-                                 OpenStandardMiningChannel,
-                                 OpenStandardMiningChannelSuccess,
-                                 SetNewPrevHash, SetTarget, SetupConnection,
-                                 SetupConnectionError, SetupConnectionSuccess,
-                                 SubmitSharesError, SubmitSharesStandard,
-                                 SubmitSharesSuccess)
+from primitives.messages import (
+    NewMiningJob,
+    OpenMiningChannelError,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    SetNewPrevHash,
+    SetTarget,
+    SetupConnection,
+    SetupConnectionError,
+    SetupConnectionSuccess,
+    SubmitSharesError,
+    SubmitSharesStandard,
+    SubmitSharesSuccess,
+)
 from primitives.pool import MiningJob, MiningSession, Pool, PoolMiningChannel
 from primitives.protocol import ConnectionProcessor
 from primitives.types import DownstreamConnectionFlags, ProtocolType
@@ -70,14 +77,12 @@ class Miner(ConnectionProcessor):
 
         while True:
             # TODO: the actual mining would happen here!
-
             # To simulate miner failures we can disable mining
-            if self.is_mining:
-                self.work_meter.measure(share_diff)
-                self.__emit_hashrate_msg_on_bus(job, avg_time)
-                self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
+            self.work_meter.measure(share_diff)
+            self.__emit_hashrate_msg_on_bus(job, avg_time)
+            self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
 
-                self.submit_mining_solution(job)
+            self.submit_mining_solution(job)
             await asyncio.sleep(1.0)
 
     def connect_to_pool(self, connection: Connection):
@@ -122,10 +127,15 @@ class Miner(ConnectionProcessor):
         """
         # Interrupt the mining process for now
         if self.mine_proc is not None:
-            self.mine_proc.interrupt()
+            self.mine_proc.cancel()
         # Restart the process with a new job
         self.job = job
         self.set_is_mining(True)
+
+        # create the mining task for this job
+        loop = asyncio.get_event_loop()
+        task = loop.create_task(self.mine(job))
+        self.mine_proc = task
 
     def set_is_mining(self, is_mining):
         self.is_mining = is_mining
@@ -140,7 +150,7 @@ class Miner(ConnectionProcessor):
         :return:
         """
         self.__emit_aux_msg_on_bus(
-            "mining with diff {} | speed {} Gh/s | avg share time {} | job uid {}".format(
+            "mining with difficulty {} | speed {} Gh/s | avg share time {} | job uid {}".format(
                 job.diff_target.to_difficulty(),
                 self.work_meter.get_speed(),
                 avg_share_time,

@@ -131,17 +131,6 @@ def connect():
     return m1, conn1
 
 
-async def mine():
-    try:
-        while True:
-            if m1.is_mining:
-                await m1.mine(m1.job)
-            else:
-                await asyncio.sleep(0.1)
-    except Exception as e:
-        print(e)
-
-
 async def receive_loop():
     """Receive process for a particular connection dispatches each received message"""
     while True:
@@ -155,7 +144,7 @@ async def receive_loop():
 
 async def main(m1: Miner):
     await asyncio.gather(
-        mine(),
+        # mine(),
         receive_loop(),
     )
 

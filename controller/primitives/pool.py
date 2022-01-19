@@ -43,6 +43,17 @@ class MiningJob:
         self.uid = uid
         self.diff_target = diff_target
 
+    def _format(self, content):
+        return "{}({})".format(type(self).__name__, content)
+
+    def __str__(self):
+        return self._format(
+            "uid={}, diff_target={}".format(
+                self.uid,
+                self.diff_target,
+            )
+        )
+
 
 class MiningJobRegistry:
     """Registry of jobs that have been assigned for mining.
