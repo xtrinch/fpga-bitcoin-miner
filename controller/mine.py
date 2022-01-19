@@ -68,15 +68,6 @@ def connect():
         action="store_const",
         const=True,
     )
-    parser.add_argument(
-        "--latency",
-        help="average network latency in seconds, default=0.01",
-        type=float,
-        default=0.01,
-    )
-    parser.add_argument(
-        "--no-luck", help="do not simulate luck", action="store_const", const=True
-    )
 
     parser.add_argument(
         "--plain-output",
