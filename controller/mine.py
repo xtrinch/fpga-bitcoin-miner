@@ -125,8 +125,8 @@ async def receive_loop():
         try:
             m1.receive_one()
         except Exception as e:
-            print(e)
-            await asyncio.sleep(2.5)
+            # TODO: figure out why it does not work without this
+            await asyncio.sleep(0.1)
             continue
 
 
