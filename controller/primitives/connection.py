@@ -32,7 +32,6 @@ class Connection:
         self,
         type_name,
         port: str,
-        mean_latency=0.01,
         latency_stddev_percent=10,
         pool_host="",
         pool_port=3336,
@@ -40,7 +39,6 @@ class Connection:
         self.type_name = type_name
         self.uid = gen_uid()
         self.port = port
-        self.mean_latency = mean_latency
         self.latency_stddev_percent = latency_stddev_percent
         self.conn_target = None
         self.sock = socket.socket()
@@ -66,7 +64,10 @@ class Connection:
         return self.conn_target is not None
 
     def send_msg(self, msg: Message):
-        print(f"{Fore.YELLOW}MSG SEND: %s{Style.RESET_ALL}" % msg)
+        print(
+            f"{Style.BRIGHT}{Fore.GREEN}Msg send: {Style.NORMAL}%s{Style.RESET_ALL}"
+            % msg
+        )
 
         ciphertext = self.cipher_state.encrypt_with_ad(b"", msg.to_frame())
         final_message = Connection.wrap(ciphertext)
