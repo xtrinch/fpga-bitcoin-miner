@@ -103,7 +103,6 @@ def connect():
     conn1 = Connection(
         "miner",
         "stratum",
-        mean_latency=args.latency,
         latency_stddev_percent=0 if args.no_luck else 10,
         # pool_host="v2.stratum.slushpool.com",
         # pool_port=3336,
