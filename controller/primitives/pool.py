@@ -35,13 +35,17 @@ class MiningJob:
     """This class allows the simulation to track per job difficulty target for
     correct accounting"""
 
-    def __init__(self, uid: int, diff_target: coins.Target):
+    def __init__(
+        self, uid: int, diff_target: coins.Target, version: int, merkle_root: bytes
+    ):
         """
         :param uid:
         :param diff_target: difficulty target
         """
         self.uid = uid
         self.diff_target = diff_target
+        self.version = version
+        self.merkle_root = merkle_root
 
     def _format(self, content):
         return "{}({})".format(type(self).__name__, content)
@@ -70,7 +74,9 @@ class MiningJobRegistry:
         # Invalidated jobs just for accounting reasons
         self.invalid_jobs = dict()
 
-    def new_mining_job(self, diff_target: coins.Target, job_id=None):
+    def new_mining_job(
+        self, diff_target: coins.Target, version: int, merkle_root: bytes, job_id=None
+    ):
         """Prepares new mining job and registers it internally.
 
         :param diff_target: difficulty target of the job to be constructed
@@ -81,7 +87,12 @@ class MiningJobRegistry:
         if job_id is None:
             job_id = self.__next_job_uid()
         if job_id not in self.jobs:
-            new_job = MiningJob(uid=job_id, diff_target=diff_target)
+            new_job = MiningJob(
+                uid=job_id,
+                diff_target=diff_target,
+                version=version,
+                merkle_root=merkle_root,
+            )
             self.jobs[new_job.uid] = new_job
         else:
             new_job = None
@@ -175,9 +186,11 @@ class MiningSession:
     def set_target(self, target):
         self.curr_diff_target = target
 
-    def new_mining_job(self, job_uid=None):
+    def new_mining_job(self, version: int, merkle_root: bytes, job_uid=None):
         """Generates a new job using current session's target"""
-        return self.job_registry.new_mining_job(self.curr_target, job_uid)
+        return self.job_registry.new_mining_job(
+            self.curr_target, version, merkle_root, job_uid
+        )
 
     def run(self):
         """Explicit activation starts any simulation processes associated with the session"""
@@ -734,7 +747,10 @@ class Pool(ConnectionProcessor):
          selects it
         :return New{Extended}MiningJob
         """
-        new_job = mining_channel.session.new_mining_job()
+        version = 1
+        merkle_root = bytes(random.getrandbits(8) for _ in range(32))
+
+        new_job = mining_channel.session.new_mining_job(version, merkle_root)
         if is_future_job:
             mining_channel.add_future_job(new_job)
 
@@ -744,15 +760,15 @@ class Pool(ConnectionProcessor):
                 channel_id=mining_channel.id,
                 job_id=new_job.uid,
                 future_job=is_future_job,
-                version=1,
-                merkle_root=1,  # Hash() ?
+                version=version,
+                merkle_root=merkle_root,
             )
         elif isinstance(mining_channel.cfg, OpenExtendedMiningChannel):
             msg = NewExtendedMiningJob(
                 channel_id=mining_channel.id,
                 job_id=new_job.uid,
                 future_job=is_future_job,
-                version=1,
+                version=version,
                 version_rolling_allowed=True,  # TODO
                 merkle_path=MerklePath(),
                 cb_prefix=CoinBasePrefix(),

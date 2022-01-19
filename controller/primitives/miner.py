@@ -75,7 +75,21 @@ class Miner(ConnectionProcessor):
         # Report the current hashrate at the beginning when of mining
         self.__emit_hashrate_msg_on_bus(job, avg_time)
 
+        nonce = 0
+
         while True:
+            # assemble the header
+
+            # version: from NewMiningJob message
+            # prev_hash: from SetNewPrevHash message
+            # merkle_root: from NewMiningJob message
+            # ntime: current time
+            # nbits: from SetNewPrevHash message
+            # nonce: auto incremented value
+            # header = version + prev_hash + merkle_root + ntime + nbits + nonce
+
+            print(job.version)
+            print(job.merkle_root)
             # TODO: the actual mining would happen here!
             # To simulate miner failures we can disable mining
             self.work_meter.measure(share_diff)
@@ -83,6 +97,9 @@ class Miner(ConnectionProcessor):
             self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
 
             self.submit_mining_solution(job)
+
+            nonce += 1
+
             await asyncio.sleep(1.0)
 
     def connect_to_pool(self, connection: Connection):
@@ -272,7 +289,9 @@ class Miner(ConnectionProcessor):
         if self.__is_channel_valid(msg):
             print("Yay, channel valid when visiting new mining job!")
             # Prepare a new job with the current session difficulty target
-            job = self.channel.session.new_mining_job(job_uid=msg.job_id)
+            job = self.channel.session.new_mining_job(
+                version=msg.version, merkle_root=msg.merkle_root, job_uid=msg.job_id
+            )
             # Schedule the job for mining
             if not msg.future_job:
                 self.mine_on_new_job(job)

@@ -643,7 +643,7 @@ class NewMiningJob(ChannelMessage):
         job_id: int,
         future_job: bool,
         version: int,
-        merkle_root: Hash,
+        merkle_root: bytes,
     ):
         # Server’s identification of the mining job. This identifier must be provided to
         # the server when shares are submitted later in the mining process.
@@ -681,7 +681,7 @@ class NewMiningJob(ChannelMessage):
         job_id = U32(self.job_id)
         future_job = BOOL(self.future_job)
         version = U32(self.version)
-        merkle_root = U32(self.merkle_root)
+        merkle_root = B0_32(self.merkle_root)
 
         payload = channel_id + job_id + future_job + version + merkle_root
 
@@ -691,9 +691,9 @@ class NewMiningJob(ChannelMessage):
     def from_bytes(bytes: bytearray):
         channel_id = int.from_bytes(bytes[:4], byteorder="little")
         job_id = int.from_bytes(bytes[4:8], byteorder="little")
-        future_job = bytes[8]
+        future_job = bytes[8] == 1
         version = int.from_bytes(bytes[9:13], byteorder="little")
-        merkle_root = bytes[13:17]
+        merkle_root = bytes[13:45]
 
         msg = NewMiningJob(
             channel_id=channel_id,
