@@ -7,6 +7,7 @@ import base58
 import ed25519
 import numpy as np
 import simpy
+from colorama import Fore, Style
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
@@ -65,7 +66,8 @@ class Connection:
         return self.conn_target is not None
 
     def send_msg(self, msg: Message):
-        print("MSG SEND: %s" % msg)
+        print(f"{Fore.YELLOW}MSG SEND: %s{Style.RESET_ALL}" % msg)
+
         ciphertext = self.cipher_state.encrypt_with_ad(b"", msg.to_frame())
         final_message = Connection.wrap(ciphertext)
 

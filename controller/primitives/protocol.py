@@ -4,6 +4,7 @@ from abc import abstractmethod
 
 import simpy
 import stringcase
+from colorama import Back, Cursor, Fore, Style
 from event_bus import EventBus
 
 from primitives.connection import Connection
@@ -109,7 +110,7 @@ class ConnectionProcessor:
             msg_class = msg_type_class_map[msg_type]
             msg = msg_class.from_bytes(raw)
 
-            print("MSG RCV: %s" % msg)
+            print(f"{Fore.GREEN}MSG RCV: %s{Style.RESET_ALL}" % msg)
 
             try:
                 msg.accept(self)
