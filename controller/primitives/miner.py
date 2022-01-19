@@ -9,13 +9,20 @@ from event_bus import EventBus
 import primitives.coins as coins
 from primitives.connection import Connection
 from primitives.hashrate_meter import HashrateMeter
-from primitives.messages import (NewMiningJob, OpenMiningChannelError,
-                                 OpenStandardMiningChannel,
-                                 OpenStandardMiningChannelSuccess,
-                                 SetNewPrevHash, SetTarget, SetupConnection,
-                                 SetupConnectionError, SetupConnectionSuccess,
-                                 SubmitSharesError, SubmitSharesStandard,
-                                 SubmitSharesSuccess)
+from primitives.messages import (
+    NewMiningJob,
+    OpenMiningChannelError,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    SetNewPrevHash,
+    SetTarget,
+    SetupConnection,
+    SetupConnectionError,
+    SetupConnectionSuccess,
+    SubmitSharesError,
+    SubmitSharesStandard,
+    SubmitSharesSuccess,
+)
 from primitives.pool import MiningJob, MiningSession, Pool, PoolMiningChannel
 from primitives.protocol import ConnectionProcessor
 from primitives.types import DownstreamConnectionFlags, ProtocolType
@@ -75,13 +82,14 @@ class Miner(ConnectionProcessor):
             # version: from NewMiningJob message
             # prev_hash: from SetNewPrevHash message
             # merkle_root: from NewMiningJob message
-            # ntime: current time
+            # ntime: from SetNewPrevHash message (min_ntime)
             # nbits: from SetNewPrevHash message
             # nonce: auto incremented value
-            # header = version + prev_hash + merkle_root + ntime + nbits + nonce
+            # header = job.version + job.prev_hash + job.merkle_root + job.ntime + job.nbits + nonce
 
             print(job.version)
             print(job.merkle_root)
+
             # TODO: the actual mining would happen here!
             # To simulate miner failures we can disable mining
             self.work_meter.measure(share_diff)
@@ -275,8 +283,12 @@ class Miner(ConnectionProcessor):
     def visit_set_new_prev_hash(self, msg: SetNewPrevHash):
         if self.__is_channel_valid(msg):
             if self.channel.session.job_registry.contains(msg.job_id):
+                job = self.channel.session.job_registry.get_job(msg.job_id)
+                # retire all other jobs, as only the referenced job is valid
+                self.channel.session.job_registry.retire_all_jobs()
+
                 self.mine_on_new_job(
-                    job=self.channel.session.job_registry.get_job(msg.job_id),
+                    job=job,
                     flush_any_pending_work=True,
                 )
 
