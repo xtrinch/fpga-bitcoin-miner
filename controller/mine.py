@@ -121,7 +121,6 @@ def connect():
             firmware="braiins-os-2018-09-22-2-hash",
             device_id="ac6f0145fccc1810",
         ),
-        simulate_luck=not args.no_luck,
         connection=conn1,
     )
 

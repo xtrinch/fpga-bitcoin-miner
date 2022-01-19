@@ -9,7 +9,8 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
-from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
+from dissononce.processing.handshakepatterns.interactive.NX import \
+    NXHandshakePattern
 from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState
@@ -352,7 +353,6 @@ class Pool(ConnectionProcessor):
         avg_pool_block_time: float = 60,
         enable_vardiff: bool = False,
         desired_submits_per_sec: float = 0.3,
-        simulate_luck: bool = True,
     ):
         """
 
@@ -378,7 +378,6 @@ class Pool(ConnectionProcessor):
         self.meter_process = None
         self.enable_vardiff = enable_vardiff
         self.desired_submits_per_sec = desired_submits_per_sec
-        self.simulate_luck = simulate_luck
 
         self.extra_meters = []
 

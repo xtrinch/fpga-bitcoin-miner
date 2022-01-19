@@ -9,20 +9,13 @@ from event_bus import EventBus
 import primitives.coins as coins
 from primitives.connection import Connection
 from primitives.hashrate_meter import HashrateMeter
-from primitives.messages import (
-    NewMiningJob,
-    OpenMiningChannelError,
-    OpenStandardMiningChannel,
-    OpenStandardMiningChannelSuccess,
-    SetNewPrevHash,
-    SetTarget,
-    SetupConnection,
-    SetupConnectionError,
-    SetupConnectionSuccess,
-    SubmitSharesError,
-    SubmitSharesStandard,
-    SubmitSharesSuccess,
-)
+from primitives.messages import (NewMiningJob, OpenMiningChannelError,
+                                 OpenStandardMiningChannel,
+                                 OpenStandardMiningChannelSuccess,
+                                 SetNewPrevHash, SetTarget, SetupConnection,
+                                 SetupConnectionError, SetupConnectionSuccess,
+                                 SubmitSharesError, SubmitSharesStandard,
+                                 SubmitSharesSuccess)
 from primitives.pool import MiningJob, MiningSession, Pool, PoolMiningChannel
 from primitives.protocol import ConnectionProcessor
 from primitives.types import DownstreamConnectionFlags, ProtocolType
@@ -40,7 +33,6 @@ class Miner(ConnectionProcessor):
         diff_1_target: int,
         device_information: dict,
         connection: Connection,
-        simulate_luck=True,
         *args,
         **kwargs,
     ):
@@ -53,7 +45,6 @@ class Miner(ConnectionProcessor):
         self.job_uid = None
         self.share_diff = None
         self.recv_loop_process = None
-        self.simulate_luck = simulate_luck
 
         self.state = self.States.INIT
         self.channel = None
