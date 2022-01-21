@@ -23,8 +23,8 @@ from primitives.messages import (
     SubmitSharesStandard,
     SubmitSharesSuccess,
 )
-from primitives.pool import MiningJob, MiningSession, Pool, PoolMiningChannel
 from primitives.protocol import ConnectionProcessor
+from primitives.session import MiningJob, MiningSession, PoolMiningChannel
 from primitives.types import DownstreamConnectionFlags, ProtocolType
 
 
@@ -244,7 +244,6 @@ class Miner(ConnectionProcessor):
     def visit_open_standard_mining_channel_success(
         self, msg: OpenStandardMiningChannelSuccess
     ):
-        # TODO: yes, this should check if an SetupMiningConnection has been sent by the client beforehand!!
         req = self.request_registry.pop(msg.req_id)
 
         if req is not None:
