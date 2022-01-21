@@ -98,21 +98,9 @@ def connect():
     return m1, conn1
 
 
-async def receive_loop():
-    """Receive process for a particular connection dispatches each received message"""
-    while True:
-        try:
-            m1.receive_one()
-        except Exception as e:
-            # TODO: figure out why it does not work without this
-            await asyncio.sleep(0.1)
-            continue
-
-
 async def main(m1: Miner):
     await asyncio.gather(
-        # mine(),
-        receive_loop(),
+        m1.receive_loop(),
     )
 
 

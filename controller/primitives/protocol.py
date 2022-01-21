@@ -133,5 +133,5 @@ class ConnectionProcessor:
                 self.receive_one()
             except Exception as e:
                 # print(e)
+                await asyncio.sleep(0.1)
                 continue
-            await asyncio.sleep(0)
