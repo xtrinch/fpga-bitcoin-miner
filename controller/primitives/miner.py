@@ -245,25 +245,27 @@ class Miner(ConnectionProcessor):
         self, msg: OpenStandardMiningChannelSuccess
     ):
         # TODO: yes, this should check if an SetupMiningConnection has been sent by the client beforehand!!
-        # req = self.request_registry.pop(msg.req_id)
+        req = self.request_registry.pop(msg.req_id)
 
-        # if req is not None:
-        session = self.new_mining_session(coins.Target(msg.target, self.diff_1_target))
-        # TODO find some reasonable extraction of the channel configuration, for now,
-        #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
-        #  pair that provides complete information
-        self.channel = PoolMiningChannel(
-            session=session,
-            # cfg=(req, msg),
-            cfg=msg,
-            conn_uid=self.connection.uid,
-            channel_id=msg.channel_id,
-        )
-        session.run()
-        # else:
-        #     self._emit_protocol_msg_on_bus(
-        #         'Cannot find matching OpenMiningChannel request', msg
-        #     )
+        if req is not None:
+            session = self.new_mining_session(
+                coins.Target(msg.target, self.diff_1_target)
+            )
+            # TODO find some reasonable extraction of the channel configuration, for now,
+            #  we just retain the OpenMiningChannel and OpenMiningChannelSuccess message
+            #  pair that provides complete information
+            self.channel = PoolMiningChannel(
+                session=session,
+                # cfg=(req, msg),
+                cfg=msg,
+                conn_uid=self.connection.uid,
+                channel_id=msg.channel_id,
+            )
+            session.run()
+        else:
+            self._emit_protocol_msg_on_bus(
+                "Cannot find matching OpenMiningChannel request", msg
+            )
 
     def visit_open_extended_mining_channel_success(
         self, msg: OpenStandardMiningChannelSuccess

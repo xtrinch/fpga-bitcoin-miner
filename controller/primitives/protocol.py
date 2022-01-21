@@ -62,6 +62,7 @@ class ConnectionProcessor:
         self.receive_loop_process.interrupt()
 
     def send_request(self, req):
+        self.request_registry.push(req)
         self.connection.send_msg(req)
 
     @abstractmethod

@@ -30,10 +30,3 @@ The protocol used is **Stratum V2**. The basis for this repository is https://gi
 ## Install
 
 Requires Python 3.7.
-
-### The `virtualenvwrapper` way
-
-```
-mkvirtualenv --python=/usr/bin/python3.7 stratum-sim
-pip install -r ./requirements.txt
-```
