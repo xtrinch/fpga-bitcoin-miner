@@ -1,5 +1,6 @@
 """Generic protocol primitives"""
 import asyncio  # new module
+import socket
 from abc import abstractmethod
 
 import simpy
@@ -56,7 +57,6 @@ class ConnectionProcessor:
         self.connection = connection
         self.request_registry = RequestRegistry()
         self.receive_loop_process = None
-        # self.receive_loop_process = self.env.process(self.receive_loop())
 
     def terminate(self):
         self.receive_loop_process.interrupt()
@@ -93,12 +93,17 @@ class ConnectionProcessor:
                 ciphertext = self.connection.sock.recv(8192)
 
             if not ciphertext:
-                raise Exception("Closed connection")
+                raise socket.timeout("Closed connection")
+
+            print("ciphertext")
+            print(ciphertext)
 
             frame, _ = Connection.unwrap(ciphertext)
 
             raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b"", frame)
 
+            print("raw")
+            print(raw)
             # plaintext is a frame
             extension_type = raw[0:1]
             msg_type = raw[2]
@@ -131,7 +136,7 @@ class ConnectionProcessor:
         while True:
             try:
                 self.receive_one()
-            except Exception as e:
-                # print(e)
-                await asyncio.sleep(0.1)
+            except socket.timeout as e:
+                print(e)
+                await asyncio.sleep(0)
                 continue

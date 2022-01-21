@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import socket
+import time
 
 import numpy as np
 import simpy
@@ -441,7 +442,7 @@ class Pool(ConnectionProcessor):
             channel_id=channel_id,
             job_id=future_job_id,
             prev_hash=self.prev_hash if self.prev_hash else 0,
-            min_ntime=0,  # self.env.now,
+            min_ntime=int(time.time()),  # self.env.now,
             nbits=0,  # TODO: None?
         )
 

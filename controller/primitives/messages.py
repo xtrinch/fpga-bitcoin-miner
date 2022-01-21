@@ -352,6 +352,14 @@ class OpenStandardMiningChannel(Message):
         return msg
 
 
+# Sent as a response for opening a standard channel
+class OpenStandardMiningChannelError(Message):
+    def __init__(self, req_id, error_code: str):
+        self.req_id = req_id
+        self.error_code = error_code
+        super().__init__(req_id)
+
+
 # Sent as a response for opening a standard channel, if successful.
 class OpenStandardMiningChannelSuccess(ChannelMessage):
     def __init__(
@@ -711,7 +719,7 @@ class NewMiningJob(ChannelMessage):
 # remaining jobs already queued by the client have to be made invalid.
 class SetNewPrevHash(ChannelMessage):
     def __init__(
-        self, channel_id: int, job_id: int, prev_hash: Hash, min_ntime: int, nbits: int
+        self, channel_id: int, job_id: int, prev_hash: bytes, min_ntime: int, nbits: int
     ):
         # Group channel or channel that this prevhash is valid for
         self.channel_id = channel_id
@@ -754,7 +762,7 @@ class SetNewPrevHash(ChannelMessage):
     def from_bytes(bytes: bytearray):
         channel_id = int.from_bytes(bytes[:4], byteorder="little")
         job_id = int.from_bytes(bytes[4:8], byteorder="little")
-        prev_hash = int.from_bytes(bytes[8:40], byteorder="little")
+        prev_hash = bytes[8:40]
         min_ntime = int.from_bytes(bytes[40:44], byteorder="little")
         nbits = int.from_bytes(bytes[44:48], byteorder="little")
 
@@ -950,12 +958,18 @@ class SubmitSharesExtended(SubmitSharesStandard):
         super().__init__(*args, **kwargs)
 
 
+class ChannelEndpointChanged(Message):
+    pass
+
+
 msg_type_class_map = {
     0x00: SetupConnection,
     0x01: SetupConnectionSuccess,
     0x02: SetupConnectionError,
+    0x03: ChannelEndpointChanged,
     0x10: OpenStandardMiningChannel,
     0x11: OpenStandardMiningChannelSuccess,
+    0x12: OpenStandardMiningChannelError,
     0x1E: NewMiningJob,
     0x21: SetTarget,
     0x20: SetNewPrevHash,

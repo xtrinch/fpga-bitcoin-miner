@@ -1,6 +1,8 @@
 import argparse
 import asyncio  # new module
+import logging
 import time
+import traceback
 
 import numpy as np
 import simpy
@@ -73,10 +75,10 @@ def connect():
     conn1 = Connection(
         "miner",
         "stratum",
-        # pool_host="v2.stratum.slushpool.com",
-        # pool_port=3336,
-        pool_host="localhost",
-        pool_port=2000,
+        pool_host="v2.stratum.slushpool.com",
+        pool_port=3336,
+        # pool_host="localhost",
+        # pool_port=2000,
     )
 
     m1 = Miner(
@@ -85,9 +87,9 @@ def connect():
         diff_1_target=mining_params.diff_1_target,
         device_information=dict(
             speed_ghps=10000,
-            vendor="Bitmain",
-            hardward_version="S9i 3.5",
-            firmware="braiins-os-2018-09-22-2-hash",
+            vendor="python",
+            hardware_version="PC",
+            firmware="python-miner",
             device_id="ac6f0145fccc1810",
         ),
         connection=conn1,
@@ -99,12 +101,21 @@ def connect():
 
 
 async def main(m1: Miner):
-    await asyncio.gather(
-        m1.receive_loop(),
-    )
+    task = asyncio.create_task(m1.receive_loop())
+    try:
+        await task
+    except Exception as e:
+        logging.error(traceback.format_exc())
+        print(e)
+
+    # await asyncio.gather(
+    #     m1.receive_loop(),
+    # )
 
 
 if __name__ == "__main__":
+    # logging.basicConfig(level=logging.DEBUG)
+
     while True:
         (m1, conn1) = connect()
         asyncio.run(main(m1))

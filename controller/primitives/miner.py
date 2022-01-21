@@ -67,6 +67,40 @@ class Miner(ConnectionProcessor):
     def _send_msg(self, msg):
         self.connection.send_msg(msg)
 
+    def assemble_header(
+        self,
+        version: int,
+        prev_hash: bytes,
+        merkle_root: bytes,
+        ntime: int,
+        nbits: int,
+        nonce: int,
+    ):
+        print("raw")
+        print(version)
+        print(prev_hash)
+        print(merkle_root)
+        print(ntime)
+        print(nbits)
+        print(nonce)
+
+        print("convs")
+        print(version.to_bytes(4, byteorder="big"))
+        print(prev_hash)
+        print(merkle_root)
+        print(ntime.to_bytes(4, byteorder="big"))
+        print(nbits.to_bytes(4, byteorder="big"))
+        print(nonce.to_bytes(4, byteorder="big"))
+        header = (
+            version.to_bytes(4, byteorder="big")
+            + prev_hash[::-1]  # 32 bytes
+            + merkle_root[::-1]  # 32 bytes
+            + ntime.to_bytes(4, byteorder="big")
+            + nbits.to_bytes(4, byteorder="big")
+            + nonce.to_bytes(4, byteorder="big")
+        )
+        return header
+
     async def mine(self, job: MiningJob):
         share_diff = job.diff_target.to_difficulty()
         avg_time = share_diff * 4.294967296 / self.device_information.get("speed_ghps")
@@ -85,11 +119,19 @@ class Miner(ConnectionProcessor):
             # ntime: from SetNewPrevHash message (min_ntime)
             # nbits: from SetNewPrevHash message
             # nonce: auto incremented value
-            # header = job.version + job.prev_hash + job.merkle_root + job.ntime + job.nbits + nonce
+            version = job.version
+            merkle_root = job.merkle_root
+            nbits = self.channel.session.nbits
+            ntime = self.channel.session.min_ntime
+            prev_hash = self.channel.session.prev_hash
 
-            print(job.version)
-            print(job.merkle_root)
+            header = self.assemble_header(
+                version, prev_hash, merkle_root, ntime, nbits, nonce
+            )
 
+            print(self.channel.session.curr_target)
+
+            print(header)
             # TODO: the actual mining would happen here!
             # To simulate miner failures we can disable mining
             self.work_meter.measure(share_diff)
@@ -103,16 +145,16 @@ class Miner(ConnectionProcessor):
             await asyncio.sleep(1.0)
 
     def connect_to_pool(self, connection: Connection):
-        connection.connect_to_pool()
-
-        # Intializes MinerV2 instance
-        self.setup_connection()
-
         self.__emit_aux_msg_on_bus(
             "Connecting to pool {}:{}".format(
                 connection.pool_host, connection.pool_port
             )
         )
+
+        connection.connect_to_pool()
+
+        # Intializes MinerV2 instance
+        self.setup_connection()
 
     def disconnect(self):
         self.__emit_aux_msg_on_bus("Disconnecting from pool")
@@ -287,6 +329,7 @@ class Miner(ConnectionProcessor):
                 job = self.channel.session.job_registry.get_job(msg.job_id)
                 # retire all other jobs, as only the referenced job is valid
                 self.channel.session.job_registry.retire_all_jobs()
+                self.channel.session.set_prev_hash(msg)
 
                 self.mine_on_new_job(
                     job=job,
@@ -354,6 +397,3 @@ class Miner(ConnectionProcessor):
             is_valid = True
 
         return is_valid
-
-
-# TODO: Move MiningChannel and session from Pool

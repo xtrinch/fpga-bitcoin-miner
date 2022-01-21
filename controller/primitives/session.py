@@ -177,6 +177,9 @@ class MiningSession:
         self.on_vardiff_change = on_vardiff_change
 
         self.job_registry = MiningJobRegistry()
+        self.prev_hash = None
+        self.min_ntime = None
+        self.nbits = None
 
     @property
     def curr_target(self):
@@ -185,6 +188,11 @@ class MiningSession:
 
     def set_target(self, target):
         self.curr_diff_target = target
+
+    def set_prev_hash(self, msg: SetNewPrevHash):
+        self.prev_hash = msg.prev_hash
+        self.min_ntime = msg.min_ntime
+        self.nbits = msg.nbits
 
     def new_mining_job(self, version: int, merkle_root: bytes, job_uid=None):
         """Generates a new job using current session's target"""
