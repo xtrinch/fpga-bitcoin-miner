@@ -75,22 +75,22 @@ def connect():
     conn1 = Connection(
         "miner",
         "stratum",
-        pool_host="v2.stratum.slushpool.com",
+        pool_host="v2.eu.stratum.slushpool.com",
         pool_port=3336,
         # pool_host="localhost",
         # pool_port=2000,
     )
 
     m1 = Miner(
-        "miner1",
+        "xtrinch.worker",
         bus,
         diff_1_target=mining_params.diff_1_target,
         device_information=dict(
-            speed_ghps=10000,
+            speed_ghps=1,
             vendor="python",
             hardware_version="PC",
             firmware="python-miner",
-            device_id="ac6f0145fccc1810",
+            device_id="xtrinch.worker",
         ),
         connection=conn1,
     )

@@ -85,51 +85,48 @@ class ConnectionProcessor:
 
     def receive_one(self):
         # Receive process for a particular connection dispatches each received message
+        # TODO: make this so it doesn't ahve to check
+        if self.connection.conn_target:
+            ciphertext = self.connection.conn_target.recv(8192)
+        else:
+            ciphertext = self.connection.sock.recv(8192)
+
+        if not ciphertext:
+            raise socket.timeout("Closed connection")
+
+        print("ciphertext")
+        print(ciphertext)
+
+        frame, _ = Connection.unwrap(ciphertext)
+
+        raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b"", frame)
+
+        print("raw")
+        print(raw)
+        # plaintext is a frame
+        extension_type = raw[0:1]
+        msg_type = raw[2]
+        msg_length = raw[3:5]  # U24
+
+        # TODO: find a more concise way of doing this
+        msg = None
+        raw = raw[6:]  # remove the common bytes
+
+        msg_class = msg_type_class_map[msg_type]
+        msg = msg_class.from_bytes(raw)
+
+        print(
+            f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"
+            % msg
+        )
+
         try:
-            # TODO: make this so it doesn't ahve to check
-            if self.connection.conn_target:
-                ciphertext = self.connection.conn_target.recv(8192)
-            else:
-                ciphertext = self.connection.sock.recv(8192)
-
-            if not ciphertext:
-                raise socket.timeout("Closed connection")
-
-            print("ciphertext")
-            print(ciphertext)
-
-            frame, _ = Connection.unwrap(ciphertext)
-
-            raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b"", frame)
-
-            print("raw")
-            print(raw)
-            # plaintext is a frame
-            extension_type = raw[0:1]
-            msg_type = raw[2]
-            msg_length = raw[3:5]  # U24
-
-            # TODO: find a more concise way of doing this
-            msg = None
-            raw = raw[6:]  # remove the common bytes
-
-            msg_class = msg_type_class_map[msg_type]
-            msg = msg_class.from_bytes(raw)
-
+            msg.accept(self)
+        except Message.VisitorMethodNotImplemented as e:
             print(
-                f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"
-                % msg
+                "{} doesn't implement:{}() for".format(type(self).__name_, e),
+                msg,
             )
-
-            try:
-                msg.accept(self)
-            except Message.VisitorMethodNotImplemented as e:
-                print(
-                    "{} doesn't implement:{}() for".format(type(self).__name_, e),
-                    msg,
-                )
-        except simpy.Interrupt:
-            print("DISCONNECTED")
 
     async def receive_loop(self):
         """Receive process for a particular connection dispatches each received message"""
