@@ -103,17 +103,8 @@ class ConnectionProcessor:
 
         print("raw")
         print(raw)
-        # plaintext is a frame
-        extension_type = raw[0:1]
-        msg_type = raw[2]
-        msg_length = raw[3:5]  # U24
 
-        # TODO: find a more concise way of doing this
-        msg = None
-        raw = raw[6:]  # remove the common bytes
-
-        msg_class = msg_type_class_map[msg_type]
-        msg = msg_class.from_bytes(raw)
+        msg = Message.from_frame(raw)
 
         print(
             f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"

@@ -1,14 +1,11 @@
 # see https://github.com/stratumv2/stratumv2/blob/master/messages.py it has some parsing already
 
 import typing
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import stringcase
 
-from .protocol_types import *
-
-"""Stratum V2 messages."""
-from primitives.types import CoinBasePrefix, CoinBaseSuffix, Hash, MerklePath
+from .message_types import *
 
 
 class Message:
@@ -46,8 +43,24 @@ class Message:
         frame = FRAME(0x0, self.__class__.__name__, payload)
         return frame
 
+    # accepts an already decrypted message
+    @staticmethod
+    def from_frame(raw: bytes):
+        extension_type = raw[0:1]
+        msg_type = raw[2]  # U8
+        msg_length = raw[3:5]  # U24
+        raw = raw[6:]  # remove the common bytes
+
+        msg_class = msg_type_class_map[msg_type]
+        decoded_msg = msg_class.from_bytes(raw)
+        return decoded_msg
+
     @abstractmethod
     def to_bytes(self):
+        pass
+
+    @abstractmethod
+    def from_bytes(self):
         pass
 
 
@@ -821,7 +834,7 @@ class SetCustomMiningJob(ChannelMessage):
         request_id: int,
         mining_job_token: bytes,
         version: int,
-        prev_hash: Hash,
+        prev_hash: bytes,
         min_ntime: int,
         nbits: int,
         coinbase_tx_version: int,
@@ -899,9 +912,9 @@ class NewExtendedMiningJob(ChannelMessage):
         future_job: bool,
         version: int,
         version_rolling_allowed: bool,
-        merkle_path: MerklePath,
-        cb_prefix: CoinBasePrefix,
-        cb_suffix: CoinBaseSuffix,
+        merkle_path: bytes,  # MerklePath,
+        cb_prefix: bytes,  # CoinBasePrefix,
+        cb_suffix: bytes,  # CoinBaseSuffix,
     ):
         self.job_id = job_id
         self.future_job = future_job

@@ -3,8 +3,6 @@ import binascii
 import ctypes
 import struct
 
-from primitives.types import CoinBasePrefix, CoinBaseSuffix, Hash, MerklePath
-
 
 def BOOL(bool):
 
