@@ -3,129 +3,36 @@
 # source: https://github.com/jakubtrnka/braiins-open/blob/master/protocols/stratum/python_noise_tcp_client/requirements.txt
 # connects to a stratum v2 server, does the noise handshake and then disconnects
 
-import socket
 import binascii
-import base58
-import ed25519
+import logging
+import socket
 import time
 
-from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
-from dissononce.processing.impl.handshakestate import HandshakeState
-from dissononce.processing.impl.symmetricstate import SymmetricState
-from dissononce.processing.impl.cipherstate import CipherState
+import base58
+import ed25519
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
+from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.processing.impl.handshakestate import HandshakeState
+from dissononce.processing.impl.symmetricstate import SymmetricState
 
-from protocol_types import U8, U16, U32, STR0_255, U24, BYTES
+from message_types import BYTES, F32, STR0_255, U8, U16, U24, U32, U256
+from messages import (
+    Message,
+    NewMiningJob,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    SetNewPrevHash,
+    SetupConnection,
+    SetupConnectionSuccess,
+)
 
 HOST = "v2.eu.stratum.slushpool.com"
 PORT = 3336
 SLUSHPOOL_CA_PUBKEY = "u95GEReVMjK6k5YqiSFNqqTnKU4ypU2Wm8awa6tmbmDmk1bWt"
 
-
-def Frame(extension_type, msg_type_name, payload):
-    msg_type_list = {"SetupConnection":[0x00,0],
-                     "SetupConnectionSuccess":[0x01,0],
-                     "SetupConnectionError":[0x02,0],
-                     "ChannelEndpointChanged":[0x03,1],
-                     "OpenStandardMiningChannel":[0x10,0],
-                     "OpenStandardMiningChannelSuccess":[0x11,0],
-                     "OpenStandardMiningChannelError":[0x12,0],
-                     "OpenExtendedMiningChannel":[0x13,0],
-                     "OpenExtendedMiningChannelSuccess":[0x14,0],
-                     "OpenExtendedMiningChannelError":[0x15,0],
-                     "UpdateChannel":[0x16,1],
-                     "UpdateChannelError":[0x17,1],
-                     "CloseChannel":[0x18,1],
-                     "SetExtranoncePrefix":[0x19,1],
-                     "SubmitSharesStandard":[0x1a,1],
-                     "SubmitSharesExtended":[0x1b,1],
-                     "SubmitSharesSuccess":[0x1c,1],
-                     "SubmitSharesError":[0x1d,1],
-                     "NewMiningJob":[0x1e,1],
-                     "NewExtendedMiningJob":[0x1f,1],
-                     "SetNewPrevHash":[0x20,1],
-                     "SetTarget":[0x21,1],
-                     "SetCustomMiningJob":[0x22,0],
-                     "SetCustomMiningJobSuccess":[0x23,0],
-                     "SetCustomMiningJobError":[0x24,0],
-                     "Reconnect":[0x25,0],
-                     "SetGroupChannel":[0x26,0],
-                     "AllocateMiningJobToken":[0x50,0],
-                     "AllocateMiningJobTokenSuccess":[0x51,0],
-                     "AllocateMiningJobTokenError":[0x52,0],
-                     "IdentifyTransactions":[0x53,0],
-                     "IdentifyTransactionsSuccess":[0x54,0],
-                     "ProvideMissingTransactions":[0x55,0],
-                     "ProvideMissingTransactionsSuccess":[0x56,0],
-                     "CoinbaseOutputDataSize":[0x70,0],
-                     "NewTemplate":[0x71,0],
-                     "SetNewPrevHashTDP":[0x72,0],
-                     "RequestTransactionData":[0x73,0],
-                     "RequestTransactionDataSuccess":[0x74,0],
-                     "RequestTransactionDataError":[0x75,0],
-                     "SubmitSolution":[0x76,0]
-
-                     }
-    msg_type_pair = msg_type_list[msg_type_name]
-
-    msg_type = msg_type_pair[0]
-
-    channel_msg_bit = msg_type_pair[1]
-
-    assert (channel_msg_bit == 0 or channel_msg_bit == 1)
-    if channel_msg_bit == 1:
-        channel_msg_bit = 0b10000000
-
-    extension_type = extension_type |  channel_msg_bit
-
-    msg_length = payload.__len__()
-
-    return U16(extension_type)+U8(msg_type)+U24(msg_length)+BYTES(payload)
-
-class SetupConnection():
-    def __init__(
-        self,
-        protocol: int,
-        max_version: int,
-        min_version: int,
-        flags: int,
-        endpoint_host: str,
-        endpoint_port: int,
-        vendor: str,
-        hardware_version: str,
-        firmware: str,
-        device_id: str = '',
-    ):
-        self.protocol = protocol
-        self.max_version = max_version
-        self.min_version = min_version
-        self.flags = flags
-        self.endpoint_host = endpoint_host
-        self.endpoint_port = endpoint_port
-        self.vendor = vendor
-        self.hardware_version = hardware_version
-        self.firmware = firmware
-        self.device_id = device_id
-        super().__init__()
-    
-    def to_bytes(self):
-        protocol = U8(self.protocol)
-        min_version = U16(self.min_version)
-        max_version = U16(self.max_version)
-        flags = U32(self.flags)
-        endpoint_host = STR0_255(self.endpoint_host)
-        endpoint_port = U16(self.endpoint_port)
-        vendor = STR0_255(self.vendor)
-        hardware_version = STR0_255((self.hardware_version))
-        firmware = STR0_255(self.firmware)
-        device_id = STR0_255(self.device_id)
-
-        payload = protocol+min_version+max_version+flags+endpoint_host+endpoint_port+vendor+hardware_version+firmware+device_id
-        frame = Frame(0x0, "SetupConnection", payload)
-
-        return frame;
 
 class SignatureMessage:
     def __init__(self, raw_signature: bytes, noise_static_pubkey: bytes):
@@ -165,6 +72,12 @@ def unwrap(item: bytes) -> (bytes, bytes):
     return (item[2 : 2 + payload_length], item[payload_length + 2 :])
 
 
+def decrypt(cipherstate, ciphertext: bytes) -> bytes:
+    frame, _ = unwrap(ciphertext)
+    raw = cipherstate.decrypt_with_ad(b"", frame)
+    return raw
+
+
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to ", HOST, " port ", PORT)
@@ -201,9 +114,9 @@ def main():
 
     signature = SignatureMessage(message_buffer, pool_static_server_key)
     signature.verify()
-    
+
     # send SetupConnection message
-    setup_connection_message = SetupConnection(
+    setup_connection = SetupConnection(
         protocol=0,
         max_version=2,
         min_version=2,
@@ -214,15 +127,47 @@ def main():
         hardware_version="1",
         firmware="unknown",
         device_id="some_id",
-    ).to_bytes()
-    ciphertext = cipherstates[0].encrypt_with_ad(b'', setup_connection_message)
+    )
+    print("SEND: %s" % setup_connection)
+    setup_connection_message = setup_connection.to_frame()
+    ciphertext = cipherstates[0].encrypt_with_ad(b"", setup_connection_message)
     sock.send(wrap(ciphertext))
 
-    # receive SetupConnectionSuccess or SetupConnectionError    
-    ciphertext = sock.recv(4096)  # rpc recv
-    print("Received SetupConnectionSuccess:")
-    print(ciphertext)
-    
+    # receive SetupConnectionSuccess or SetupConnectionError
+    ciphertext = sock.recv(8000)  # rpc recv
+    raw = decrypt(cipherstates[1], ciphertext)
+    decoded_msg = Message.from_frame(raw)
+    print("RECEIVE: %s" % decoded_msg)
+
+    open_mining_channel = OpenStandardMiningChannel(
+        req_id=1,
+        user_identity="xtrinch.worker",
+        nominal_hashrate=100.0,
+        max_target=100,
+    )
+    open_mining_channel_message = open_mining_channel.to_frame()
+    print("SEND: %s" % open_mining_channel)
+    ciphertext = cipherstates[0].encrypt_with_ad(b"", open_mining_channel_message)
+    sock.send(wrap(ciphertext))
+
+    # receive OpenStandardMiningChannelSuccess
+    ciphertext = sock.recv(8000)  # rpc recv
+    raw = decrypt(cipherstates[1], ciphertext)
+    decoded_msg = Message.from_frame(raw)
+    print("RECEIVE: %s" % decoded_msg)
+
+    # receive NewMiningJob
+    ciphertext = sock.recv(8000)  # rpc recv
+    raw = decrypt(cipherstates[1], ciphertext)
+    decoded_msg = Message.from_frame(raw)
+    print("RECEIVE: %s" % decoded_msg)
+
+    # receive SetNewPrevHash - does not seem to arrive?
+    ciphertext = sock.recv(8000)  # rpc recv
+    raw = decrypt(cipherstates[1], ciphertext)
+    decoded_msg = Message.from_frame(raw)
+    print("RECEIVE: %s" % decoded_msg)
+
     print(
         "Noise encrypted connection established successfuly. Nothing to do now, Closing..."
     )

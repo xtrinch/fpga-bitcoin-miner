@@ -4,3 +4,4 @@ cryptography==35.0.0
 dissononce==0.34.3
 ed25519==1.5
 pycparser==2.20
+stringcase
