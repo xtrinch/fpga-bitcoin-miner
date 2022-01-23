@@ -134,7 +134,8 @@ def main():
     sock.send(wrap(ciphertext))
 
     # receive SetupConnectionSuccess or SetupConnectionError
-    ciphertext = sock.recv(8000)  # rpc recv
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
     raw = decrypt(cipherstates[1], ciphertext)
     decoded_msg = Message.from_frame(raw)
     print("RECEIVE: %s" % decoded_msg)
@@ -151,19 +152,22 @@ def main():
     sock.send(wrap(ciphertext))
 
     # receive OpenStandardMiningChannelSuccess
-    ciphertext = sock.recv(8000)  # rpc recv
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
     raw = decrypt(cipherstates[1], ciphertext)
     decoded_msg = Message.from_frame(raw)
     print("RECEIVE: %s" % decoded_msg)
 
     # receive NewMiningJob
-    ciphertext = sock.recv(8000)  # rpc recv
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
     raw = decrypt(cipherstates[1], ciphertext)
     decoded_msg = Message.from_frame(raw)
     print("RECEIVE: %s" % decoded_msg)
 
     # receive SetNewPrevHash - does not seem to arrive?
-    ciphertext = sock.recv(8000)  # rpc recv
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
     raw = decrypt(cipherstates[1], ciphertext)
     decoded_msg = Message.from_frame(raw)
     print("RECEIVE: %s" % decoded_msg)
