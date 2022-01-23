@@ -48,7 +48,7 @@ class Message:
     def from_frame(raw: bytes):
         extension_type = raw[0:1]
         msg_type = raw[2]  # U8
-        msg_length = raw[3:5]  # U24
+        msg_length = parse_bytes_to_int(raw[3:5])  # U24
         raw = raw[6:]  # remove the common bytes
 
         msg_class = msg_type_class_map[msg_type]

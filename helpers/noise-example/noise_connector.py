@@ -7,6 +7,7 @@ import binascii
 import logging
 import socket
 import time
+from typing import List
 
 import base58
 import ed25519
@@ -18,7 +19,17 @@ from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.processing.impl.symmetricstate import SymmetricState
 
-from message_types import BYTES, F32, STR0_255, U8, U16, U24, U32, U256
+from message_types import (
+    BYTES,
+    F32,
+    STR0_255,
+    U8,
+    U16,
+    U24,
+    U32,
+    U256,
+    parse_bytes_to_int,
+)
 from messages import (
     Message,
     NewMiningJob,
@@ -27,6 +38,7 @@ from messages import (
     SetNewPrevHash,
     SetupConnection,
     SetupConnectionSuccess,
+    msg_type_class_map,
 )
 
 HOST = "v2.eu.stratum.slushpool.com"
@@ -76,6 +88,30 @@ def decrypt(cipherstate, ciphertext: bytes) -> bytes:
     frame, _ = unwrap(ciphertext)
     raw = cipherstate.decrypt_with_ad(b"", frame)
     return raw
+
+
+def receive(sock: socket.socket, cipherstate) -> [Message]:
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
+
+    # we may receive multiple messages in one noise message, we must decrypt
+    # them separately
+    remaining_length = len(ciphertext)
+    decoded_msgs = []
+
+    while remaining_length > 0:
+        raw = decrypt(cipherstate, ciphertext)
+        msg_length = len(raw)
+
+        decoded_msg = Message.from_frame(raw)
+        decoded_msgs.append(decoded_msg)
+
+        # noise overhead seems to be 18 bytes per message
+        remaining_length = remaining_length - (msg_length + 18)
+        # discard the message we decoded in this run of the while loop
+        ciphertext = ciphertext[len(ciphertext) - (remaining_length) :]
+
+    return decoded_msgs
 
 
 def main():
@@ -134,11 +170,7 @@ def main():
     sock.send(wrap(ciphertext))
 
     # receive SetupConnectionSuccess or SetupConnectionError
-    ciphertext = sock.recv(8192)  # rpc recv
-    print("RCV RAW: %d bytes" % len(ciphertext))
-    raw = decrypt(cipherstates[1], ciphertext)
-    decoded_msg = Message.from_frame(raw)
-    print("RECEIVE: %s" % decoded_msg)
+    receive(sock, cipherstates[1])
 
     open_mining_channel = OpenStandardMiningChannel(
         req_id=1,
@@ -152,25 +184,17 @@ def main():
     sock.send(wrap(ciphertext))
 
     # receive OpenStandardMiningChannelSuccess
-    ciphertext = sock.recv(8192)  # rpc recv
-    print("RCV RAW: %d bytes" % len(ciphertext))
-    raw = decrypt(cipherstates[1], ciphertext)
-    decoded_msg = Message.from_frame(raw)
-    print("RECEIVE: %s" % decoded_msg)
+    [msg1] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
 
-    # receive NewMiningJob
-    ciphertext = sock.recv(8192)  # rpc recv
-    print("RCV RAW: %d bytes" % len(ciphertext))
-    raw = decrypt(cipherstates[1], ciphertext)
-    decoded_msg = Message.from_frame(raw)
-    print("RECEIVE: %s" % decoded_msg)
+    # receive NewMiningJob & SetNewPrevHash combined
+    [msg1, msg2] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
+    print("RECEIVE: %s" % msg2)
 
-    # receive SetNewPrevHash - does not seem to arrive?
-    ciphertext = sock.recv(8192)  # rpc recv
-    print("RCV RAW: %d bytes" % len(ciphertext))
-    raw = decrypt(cipherstates[1], ciphertext)
-    decoded_msg = Message.from_frame(raw)
-    print("RECEIVE: %s" % decoded_msg)
+    # receive the next message, whatever it may be
+    [msg1] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
 
     print(
         "Noise encrypted connection established successfuly. Nothing to do now, Closing..."
