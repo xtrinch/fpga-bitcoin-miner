@@ -86,7 +86,7 @@ def connect():
         bus,
         diff_1_target=mining_params.diff_1_target,
         device_information=dict(
-            speed_ghps=1,
+            speed_ghps=0.00006,  # 60.000 hashes per second
             vendor="python",
             hardware_version="PC",
             firmware="python-miner",

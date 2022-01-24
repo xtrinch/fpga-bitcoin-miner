@@ -135,7 +135,10 @@ class Connection:
 
     def receive(self) -> [Message]:
         ciphertext = self.sock.recv(8192)
-        print("RCV RAW: %d bytes" % len(ciphertext))
+        print(
+            f"{Style.BRIGHT}{Fore.YELLOW}Rcv raw: {Style.NORMAL}%d bytes{Style.RESET_ALL}"
+            % len(ciphertext)
+        )
 
         # we may receive multiple messages in one noise message, we must decrypt
         # them separately

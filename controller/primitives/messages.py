@@ -302,7 +302,7 @@ class OpenStandardMiningChannel(Message):
         self,
         req_id: typing.Any,
         user_identity: str,
-        nominal_hashrate: float,
+        nominal_hash_rate: float,
         max_target: int,
     ):
         # Unconstrained sequence of bytes. Whatever is needed by upstream node to identify/authenticate
@@ -312,7 +312,7 @@ class OpenStandardMiningChannel(Message):
 
         # Expected hash rate of the device (or cumulative hashrate on the channel if multiple devices
         # are connected downstream) in h/s
-        self.nominal_hashrate = nominal_hashrate
+        self.nominal_hash_rate = nominal_hash_rate
 
         # Maximum target which can be accepted by the connected device or devices. Server MUST accept
         # the target or respond by sending OpenMiningChannel.Error message.
@@ -325,10 +325,10 @@ class OpenStandardMiningChannel(Message):
 
     def __str__(self):
         return self._format(
-            "req_id={}, user_identity={}, nominal_hashrate={}, max_target={}, new_job_class={}".format(
+            "req_id={}, user_identity={}, nominal_hash_rate={}, max_target={}, new_job_class={}".format(
                 self.req_id,
                 self.user_identity,
-                self.nominal_hashrate,
+                self.nominal_hash_rate,
                 self.max_target,
                 self.new_job_class,
             )
@@ -337,10 +337,10 @@ class OpenStandardMiningChannel(Message):
     def to_bytes(self):
         req_id = U32(self.req_id)
         user_identity = STR0_255(self.user_identity)
-        nominal_hashrate = F32(self.nominal_hashrate)
+        nominal_hash_rate = F32(self.nominal_hash_rate)
         max_target = U256(self.max_target)
 
-        payload = req_id + user_identity + nominal_hashrate + max_target
+        payload = req_id + user_identity + nominal_hash_rate + max_target
 
         return payload
 
@@ -351,7 +351,7 @@ class OpenStandardMiningChannel(Message):
         l = bytes[4]
 
         user_identity = bytes[5 : 5 + l].decode("utf-8")
-        nominal_hashrate = struct.unpack("<f", bytes[5 + l : 5 + l + 4])
+        nominal_hash_rate = struct.unpack("<f", bytes[5 + l : 5 + l + 4])
         max_target = int.from_bytes(
             bytes[5 + l + 4 : 5 + l + 4 + 4], byteorder="little"
         )
@@ -359,7 +359,7 @@ class OpenStandardMiningChannel(Message):
         msg = OpenStandardMiningChannel(
             req_id=req_id,
             user_identity=user_identity,
-            nominal_hashrate=nominal_hashrate,
+            nominal_hash_rate=nominal_hash_rate,
             max_target=max_target,
         )
         return msg

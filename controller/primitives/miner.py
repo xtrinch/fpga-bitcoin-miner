@@ -68,7 +68,7 @@ class Miner(ConnectionProcessor):
         self.connection.send_msg(msg)
 
     def int_to_reverse_bytes(self, num: int, byteno: int):
-        reverse_bytes = num.to_bytes(byteno, byteorder="little").hex()
+        reverse_bytes = num.to_bytes(byteno, byteorder="little")
         return reverse_bytes
 
     def assemble_header(
@@ -108,14 +108,13 @@ class Miner(ConnectionProcessor):
             # ntime: from SetNewPrevHash message (min_ntime)
             # nbits: from SetNewPrevHash message
             # nonce: auto incremented value
-            version = job.version
-            merkle_root = job.merkle_root
-            nbits = self.channel.session.nbits
-            ntime = self.channel.session.min_ntime
-            prev_hash = self.channel.session.prev_hash
-
             header = self.assemble_header(
-                version, prev_hash, merkle_root, ntime, nbits, nonce
+                version=job.version,
+                prev_hash=self.channel.session.prev_hash,
+                merkle_root=job.merkle_root,
+                ntime=self.channel.session.min_ntime,
+                nbits=self.channel.session.nbits,
+                nonce=nonce,
             )
 
             print(self.channel.session.curr_target)
@@ -257,7 +256,7 @@ class Miner(ConnectionProcessor):
         req = OpenStandardMiningChannel(
             req_id=1,
             user_identity=self.name,
-            nominal_hashrate=self.device_information.get("speed_ghps") * 1e9,
+            nominal_hash_rate=self.device_information.get("speed_ghps") * 1e9,
             max_target=self.diff_1_target,
             # Header only mining, now extranonce 2 size required
         )
@@ -327,7 +326,6 @@ class Miner(ConnectionProcessor):
 
     def visit_new_mining_job(self, msg: NewMiningJob):
         if self.__is_channel_valid(msg):
-            print("Yay, channel valid when visiting new mining job!")
             # Prepare a new job with the current session difficulty target
             job = self.channel.session.new_mining_job(
                 version=msg.version, merkle_root=msg.merkle_root, job_uid=msg.job_id
