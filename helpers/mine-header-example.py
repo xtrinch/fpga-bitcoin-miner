@@ -19,12 +19,19 @@ b' \x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\xf2T\x0f\xe3\x07\xe5\xe5
 
 from hashlib import sha256
 
+
+def int_to_reverse_bytes(num: int, byteno: int):
+    reverse_bytes = num.to_bytes(byteno, byteorder="little").hex()
+    return reverse_bytes
+
+
 # https://www.blockchain.com/btc/block/00000000000000000007ed90d289f313c4f19a44438f3c4c55eca1637c4c8702
 # https://blockchain.info/rawblock/00000000000000000007ed90d289f313c4f19a44438f3c4c55eca1637c4c8702?format=hex
 # previous block: https://www.blockchain.com/btc/block/00000000000000000004f2540fe307e5e54d468b411e6a4c2d1abf604ebfdfd0
 
-# non-byte reversed version as seen on blockchain.com
-version = "0000FF3F"
+# byte reversed version as seen on blockchain.com
+version = int_to_reverse_bytes(1073676288, 4)
+assert version == "0000ff3f"
 
 # byte reversed prev hash as seen on blockchain.com
 prev_hash = "D0DFBF4E60BF1A2D4C6A1E418B464DE5E507E30F54F204000000000000000000"
@@ -33,13 +40,16 @@ prev_hash = "D0DFBF4E60BF1A2D4C6A1E418B464DE5E507E30F54F204000000000000000000"
 merkle_root = "D4A302B04A7742F73BD84676ABADC0FDBF61B828A3588F4B1728FBED574F538F"
 
 # byte reversed ntime as seen on blockchain.com, epoch time is 1643025553, (original convert from decimal is 61EE9491)
-ntime = "9194ee61"
+ntime = int_to_reverse_bytes(1643025553, 4)
+assert ntime == "9194ee61"
 
-# byte reversed nbits as seen on blockchain.com (original convert from decimal is 170A9080)
-nbits = "80900A17"
+# byte reversed nbits as seen on blockchain.com (decimal 386,568,320, original convert from decimal is 170A9080)
+nbits = int_to_reverse_bytes(386568320, 4)
+assert nbits == "80900a17"
 
-# byte reversed nonce as seen on blockchain.com (original convert from decimal is 729789CF)
-nonce = "CF899772"
+# byte reversed nonce as seen on blockchain.com (decimal 1,922,533,839, original convert from decimal is 729789CF)
+nonce = int_to_reverse_bytes(1922533839, 4)
+assert nonce == "cf899772"
 
 expected_hash = "00000000000000000007ED90D289F313C4F19A44438F3C4C55ECA1637C4C8702"
 
