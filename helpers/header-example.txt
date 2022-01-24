@@ -1,0 +1,29 @@
+https://www.blockchain.com/btc/block/00000000000000000007ed90d289f313c4f19a44438f3c4c55eca1637c4c8702
+
+prev_hash
+    - 00000000000000000004f2540fe307e5e54d468b411e6a4c2d1abf604ebfdfd0
+    - sent by the pool in byte reversed order - so the zeroes are first
+
+bits
+    - 386,568,320
+    - sent by the pool as 386568320 integer
+
+merkle_root
+    - 8f534f57edfb28174b8f58a328b861bffdc0adab7646d83bf742774ab002a3d4
+    - not the same as sent by the pool, probably also reversed as in prev_hash
+
+version
+    - 0x3fff0000
+    - sent by the pool as 536870916 integer, should be 1073676288
+
+nonce
+    - 1,922,533,839
+
+timestamp:
+    - 2022-01-24 12:59
+    - unix 1643025540
+    - hex 61EE9484
+    - reverse 4849EE16
+
+hash
+    - 00000000000000000007ed90d289f313c4f19a44438f3c4c55eca1637c4c8702
