@@ -12,6 +12,7 @@ class Target:
 
     @staticmethod
     def from_difficulty(diff, diff_1_target):
+
         """Converts difficulty to target at the network specified by diff_1_target"""
         return Target(diff_1_target // diff, diff_1_target)
 
@@ -19,6 +20,10 @@ class Target:
         self.target = self.target // factor
 
     def __str__(self):
+        print("Difficulty 1 targt")
+        print(self.diff_1_target)
+        print("Difficituly target")
+        print(self.target)
         return "{}(diff={})".format(type(self).__name__, self.to_difficulty())
 
     def to_bytes(self):

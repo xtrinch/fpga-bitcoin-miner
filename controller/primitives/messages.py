@@ -417,12 +417,12 @@ class OpenStandardMiningChannelSuccess(ChannelMessage):
     def from_bytes(bytes: bytearray):
         req_id = int.from_bytes(bytes[0:4], byteorder="little")
         channel_id = int.from_bytes(bytes[4:8], byteorder="little")  # this is correct!!
-        target = int.from_bytes(bytes[9 : 9 + 31], byteorder="little")
+        target = int.from_bytes(bytes[8 : 8 + 32], byteorder="little")
 
-        l = bytes[9 + 31]
+        l = bytes[40]
 
-        extranonce_prefix = int.from_bytes(bytes[41 : 41 + l], byteorder="little")
-        group_channel_id = int.from_bytes(bytes[41 + l : 46 + l], byteorder="little")
+        extranonce_prefix = bytes[41 : 41 + l]
+        group_channel_id = int.from_bytes(bytes[41 + l : 45 + l], byteorder="little")
 
         msg = OpenStandardMiningChannelSuccess(
             req_id=req_id,

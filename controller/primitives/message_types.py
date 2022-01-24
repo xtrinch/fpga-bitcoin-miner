@@ -58,12 +58,6 @@ def U32(inter):
     return (inter).to_bytes(4, byteorder="little")
 
 
-def B0_32(inter):
-    assert type(inter) is bytes, "B0_32: not bytes"
-
-    return inter
-
-
 def F32(inter):
 
     assert type(inter) is float, "F32: not float"
@@ -110,6 +104,15 @@ def STR0_255(string):
     s.pack_into(b, 0, string.encode("utf-8"))
 
     return U8(length) + b.raw
+
+
+def B0_32(_bytes):
+    assert type(_bytes) is bytes, "B0_32: not bytes"
+    length = _bytes.__len__()
+    if length not in range(0, 2 ** 8):
+        raise Exception("Overflow")
+
+    return U8(length) + _bytes
 
 
 def B0_255(_bytes):
