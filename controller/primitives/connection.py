@@ -49,7 +49,7 @@ class Connection:
     def connect_to_pool(self):
         self.sock.connect((self.pool_host, self.pool_port))
 
-        self.connect_to_noise(self.sock, self.pool_host != "localhost")
+        self.connect_to_noise(self.pool_host != "localhost")
 
     def disconnect(self):
         # TODO: Review whether to use assert's or RuntimeErrors in simulation
@@ -75,7 +75,7 @@ class Connection:
         else:
             self.sock.send(final_message)
 
-    def connect_to_noise(self, sock, verify_connection: bool = True):
+    def connect_to_noise(self, verify_connection: bool = True):
         # prepare handshakestate objects for initiator and responder
         our_handshakestate = HandshakeState(
             SymmetricState(
@@ -94,11 +94,11 @@ class Connection:
         message_buffer = bytearray()
         our_handshakestate.write_message(b"", message_buffer)
         message_buffer = Connection.wrap(bytes(message_buffer))
-        num_sent = sock.send(message_buffer)  # rpc send
+        num_sent = self.sock.send(message_buffer)  # rpc send
 
         #  <- e, ee, s, es, SIGNATURE_NOISE_MESSAGE
         message_buffer = bytearray()
-        ciphertext = sock.recv(4096)  # rpc recv
+        ciphertext = self.sock.recv(4096)  # rpc recv
         frame, _ = Connection.unwrap(ciphertext)
         self.cipherstates = our_handshakestate.read_message(frame, message_buffer)
         self.cipher_state = self.cipherstates[0]
@@ -127,6 +127,39 @@ class Connection:
         length_prefix = item[0:2]
         payload_length = int.from_bytes(length_prefix, byteorder="little")
         return (item[2 : 2 + payload_length], item[payload_length + 2 :])
+
+    def decrypt(self, ciphertext: bytes) -> bytes:
+        frame, _ = Connection.unwrap(ciphertext)
+        raw = self.decrypt_cipher_state.decrypt_with_ad(b"", frame)
+        return raw
+
+    def receive(self) -> [Message]:
+        ciphertext = self.sock.recv(8192)
+        print("RCV RAW: %d bytes" % len(ciphertext))
+
+        # we may receive multiple messages in one noise message, we must decrypt
+        # them separately
+        remaining_length = len(ciphertext)
+        decoded_msgs = []
+
+        while remaining_length > 0:
+            raw = self.decrypt(ciphertext)
+            msg_length = len(raw)
+
+            decoded_msg = Message.from_frame(raw)
+            decoded_msgs.append(decoded_msg)
+
+            # noise overhead seems to be 18 bytes per message
+            remaining_length = remaining_length - (msg_length + 18)
+            # discard the message we decoded in this run of the while loop
+            ciphertext = ciphertext[len(ciphertext) - (remaining_length) :]
+
+            print(
+                f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"
+                % decoded_msg
+            )
+
+        return decoded_msgs
 
 
 class SignatureMessage:

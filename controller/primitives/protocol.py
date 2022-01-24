@@ -84,35 +84,11 @@ class ConnectionProcessor:
         self._emit_aux_msg_on_bus("{}: {}".format(log_msg, msg))
 
     def receive_one(self):
-        # Receive process for a particular connection dispatches each received message
-        # TODO: make this so it doesn't ahve to check
-        if self.connection.conn_target:
-            ciphertext = self.connection.conn_target.recv(8192)
-        else:
-            ciphertext = self.connection.sock.recv(8192)
-
-        if not ciphertext:
-            raise socket.timeout("Closed connection")
-
-        print("ciphertext")
-        print(ciphertext)
-
-        frame, _ = Connection.unwrap(ciphertext)
-
-        raw = self.connection.decrypt_cipher_state.decrypt_with_ad(b"", frame)
-
-        print("raw")
-        print(raw)
-
-        msg = Message.from_frame(raw)
-
-        print(
-            f"{Style.BRIGHT}{Fore.YELLOW}Msg rcv: {Style.NORMAL}%s{Style.RESET_ALL}"
-            % msg
-        )
+        messages = self.connection.receive()
 
         try:
-            msg.accept(self)
+            for msg in messages:
+                msg.accept(self)
         except Message.VisitorMethodNotImplemented as e:
             print(
                 "{} doesn't implement:{}() for".format(type(self).__name_, e),
