@@ -67,6 +67,10 @@ class Miner(ConnectionProcessor):
     def _send_msg(self, msg):
         self.connection.send_msg(msg)
 
+    def int_to_reverse_bytes(self, num: int, byteno: int):
+        reverse_bytes = num.to_bytes(byteno, byteorder="little").hex()
+        return reverse_bytes
+
     def assemble_header(
         self,
         version: int,
@@ -76,28 +80,13 @@ class Miner(ConnectionProcessor):
         nbits: int,
         nonce: int,
     ):
-        print("raw")
-        print(version)
-        print(prev_hash)
-        print(merkle_root)
-        print(ntime)
-        print(nbits)
-        print(nonce)
-
-        print("convs")
-        print(version.to_bytes(4, byteorder="big"))
-        print(prev_hash)
-        print(merkle_root)
-        print(ntime.to_bytes(4, byteorder="big"))
-        print(nbits.to_bytes(4, byteorder="big"))
-        print(nonce.to_bytes(4, byteorder="big"))
         header = (
-            version.to_bytes(4, byteorder="big")
-            + prev_hash[::-1]  # 32 bytes
-            + merkle_root[::-1]  # 32 bytes
-            + ntime.to_bytes(4, byteorder="big")
-            + nbits.to_bytes(4, byteorder="big")
-            + nonce.to_bytes(4, byteorder="big")
+            self.int_to_reverse_bytes(version, 4)
+            + prev_hash  # 32 bytes
+            + merkle_root  # 32 bytes
+            + self.int_to_reverse_bytes(ntime, 4)
+            + self.int_to_reverse_bytes(nbits, 4)
+            + self.int_to_reverse_bytes(nonce, 4)
         )
         return header
 
