@@ -76,6 +76,9 @@ def U64(inter):
 
 
 def U256(inter):
+    if type(inter) is bytes:
+        return inter
+
     assert type(inter) is int, "U256: not integer"
 
     if inter >= 2 ** 256:

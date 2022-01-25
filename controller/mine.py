@@ -75,10 +75,10 @@ async def connect():
     conn1 = Connection(
         "miner",
         "stratum",
-        pool_host="v2.eu.stratum.slushpool.com",
-        pool_port=3336,
-        # pool_host="localhost",
-        # pool_port=2000,
+        # pool_host="v2.eu.stratum.slushpool.com",
+        # pool_port=3336,
+        pool_host="localhost",
+        pool_port=2000,
     )
 
     m1 = Miner(

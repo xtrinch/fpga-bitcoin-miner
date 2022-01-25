@@ -2,6 +2,7 @@ import asyncio  # new module
 import concurrent.futures
 import enum
 import math
+import time
 from hashlib import sha256
 
 import numpy as np
@@ -116,6 +117,8 @@ class Miner(ConnectionProcessor):
             nbits=self.channel.session.nbits,
         )
 
+        start_time = int(time.time())
+        print("start time: %d" % start_time)
         print("Max target:")
         print((0xFFFF << 208).to_bytes(32, byteorder="big").hex())
         print("Curr target:")
@@ -131,6 +134,8 @@ class Miner(ConnectionProcessor):
             hash = int.from_bytes(hash_bytes, byteorder="little")
 
             if hash < min_hash:
+                print("nonce: %d" % nonce)
+                print("time: %d" % int(time.time()))
                 print(hash.to_bytes(32, byteorder="big").hex())
                 min_hash = hash
 
@@ -141,6 +146,8 @@ class Miner(ConnectionProcessor):
                 self.submit_mining_solution(job)
 
             nonce += 1
+
+        print("Finished mining at %d" % nonce)
 
     async def connect_to_pool(self, connection: Connection):
         self.__emit_aux_msg_on_bus(
