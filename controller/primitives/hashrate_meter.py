@@ -74,8 +74,10 @@ class HashrateMeter(object):
             )  # will trigger after the threshold
 
     def get_speed(self):
+        total_time_held = np.sum(self.frozen_time_buffer)
+
         return 0
-        # total_time_held = np.sum(self.frozen_time_buffer)
+
         # time_elapsed = self.env.now - self.time_started - total_time_held
         # if time_elapsed > self.window_size:
         #     time_elapsed = self.window_size

@@ -74,6 +74,7 @@ class Miner(ConnectionProcessor):
         reverse_bytes = num.to_bytes(byteno, byteorder="little")
         return reverse_bytes
 
+    # assemble header without nonce, so we can just append it
     def assemble_header(
         self,
         version: int,
@@ -81,7 +82,6 @@ class Miner(ConnectionProcessor):
         merkle_root: bytes,
         ntime: int,
         nbits: int,
-        nonce: int,
     ):
         header = (
             self.int_to_reverse_bytes(version, 4)
@@ -89,7 +89,6 @@ class Miner(ConnectionProcessor):
             + merkle_root  # 32 bytes
             + self.int_to_reverse_bytes(ntime, 4)
             + self.int_to_reverse_bytes(nbits, 4)
-            + self.int_to_reverse_bytes(nonce, 4)
         )
         return header
 
@@ -101,6 +100,22 @@ class Miner(ConnectionProcessor):
         self.__emit_hashrate_msg_on_bus(job, avg_time)
 
         nonce = 0
+        min_hash = 0xFFFF << 240
+
+        header_without_nonce = self.assemble_header(
+            version=job.version,
+            prev_hash=self.channel.session.prev_hash,
+            merkle_root=job.merkle_root,
+            ntime=self.channel.session.min_ntime,
+            nbits=self.channel.session.nbits,
+        )
+
+        print("Max target:")
+        print((0xFFFF << 208).to_bytes(32, byteorder="big").hex())
+        print("Curr target:")
+        print(
+            self.channel.session.curr_target.target.to_bytes(32, byteorder="big").hex()
+        )
 
         while not job.is_cancelled:
             # assemble the header
@@ -111,24 +126,31 @@ class Miner(ConnectionProcessor):
             # ntime: from SetNewPrevHash message (min_ntime)
             # nbits: from SetNewPrevHash message
             # nonce: auto incremented value
-            header = self.assemble_header(
-                version=job.version,
-                prev_hash=self.channel.session.prev_hash,
-                merkle_root=job.merkle_root,
-                ntime=self.channel.session.min_ntime,
-                nbits=self.channel.session.nbits,
-                nonce=nonce,
-            )
 
-            hash_bytes = sha256(sha256(header).digest()).digest()
+            full_header = header_without_nonce + self.int_to_reverse_bytes(nonce, 4)
+
+            hash_bytes = sha256(sha256(full_header).digest()).digest()
             hash = int.from_bytes(hash_bytes, byteorder="little")
             # print(hash)
 
-            if nonce % 1000000 == 0 and nonce != 0:
-                print("Tried another 1000000")
-                print(job.uid)
-                print(hash)
-                # print(self.channel.session.curr_target.target)
+            # if nonce % 1000000 == 0 and nonce != 0:
+            #     print("Computed hash:")
+            #     print(hash_bytes.hex())
+            #     print("Max target:")
+            #     print((0xFFFF << 208).to_bytes(32, byteorder="big").hex())
+            #     print("Curr target:")
+            #     print(
+            #         self.channel.session.curr_target.target.to_bytes(
+            #             32, byteorder="big"
+            #         ).hex()
+            #     )
+            #     print("Nonce:")
+            #     print(nonce)
+
+            if hash < min_hash:
+                print(hash.to_bytes(32, byteorder="big").hex())
+
+                min_hash = hash
 
             if hash < self.channel.session.curr_target.target:
                 self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
@@ -270,8 +292,9 @@ class Miner(ConnectionProcessor):
             nominal_hash_rate=math.floor(
                 self.device_information.get("speed_ghps") * 1e9
             ),
-            max_target=self.diff_1_target,
-            # Header only mining, now extranonce 2 size required
+            # TODO: figure this out
+            # max_target=self.diff_1_target,
+            max_target=(1),
         )
         # We expect a paired response to our open channel request
         self.send_request(req)
@@ -322,8 +345,11 @@ class Miner(ConnectionProcessor):
 
     def visit_set_target(self, msg: SetTarget):
         if self.__is_channel_valid(msg):
-            # TODO: set target should set the target class, not the int?
-            self.channel.session.set_target(msg.max_target)
+            self.channel.session.set_target(
+                coins.Target(
+                    msg.max_target, self.channel.session.curr_diff_target.diff_1_target
+                )
+            )
 
     def visit_set_new_prev_hash(self, msg: SetNewPrevHash):
         if self.__is_channel_valid(msg):
