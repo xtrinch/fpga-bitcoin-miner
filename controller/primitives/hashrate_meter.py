@@ -3,6 +3,8 @@ this class estimates miner speed from reported shares
 implemented using rolling time window
 the HashrateMeter.roll method is called automatically each 5 seconds by default (granularity = 5)
 """
+import time
+
 import numpy as np
 import simpy
 
@@ -14,7 +16,9 @@ class HashrateMeter(object):
         granularity: int = 5,
         auto_hold_threshold=None,
     ):
-        self.time_started = 0
+        self.time_started = (
+            self.get_time()
+        )  # was originally zero, as simpy starts from 0
         self.window_size = window_size
         self.granularity = granularity
         self.pow_buffer = np.zeros(self.window_size // self.granularity)
@@ -25,6 +29,9 @@ class HashrateMeter(object):
         self.auto_hold_threshold = auto_hold_threshold
         self.on_hold = False
         self.put_on_hold_proc = None
+
+    def get_time(self):
+        return int(time.time())
 
     def reset(self, time_started):
         self.pow_buffer = np.zeros(self.window_size // self.granularity)
@@ -75,8 +82,14 @@ class HashrateMeter(object):
 
     def get_speed(self):
         total_time_held = np.sum(self.frozen_time_buffer)
+        time_elapsed = self.get_time() - self.time_started - total_time_held
+        if time_elapsed > self.window_size:
+            time_elapsed = self.window_size
+        total_work = np.sum(self.pow_buffer)
+        if time_elapsed < 1 or total_work == 0:
+            return None
 
-        return 0
+        return total_work * 4.294967296 / time_elapsed
 
         # time_elapsed = self.env.now - self.time_started - total_time_held
         # if time_elapsed > self.window_size:
