@@ -112,7 +112,6 @@ class Connection:
             )
             signature.verify()
 
-        print("Handshake done!")
         return True
 
     @staticmethod

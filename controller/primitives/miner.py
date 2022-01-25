@@ -1,5 +1,6 @@
 import asyncio  # new module
 import enum
+import math
 
 import numpy as np
 import simpy
@@ -126,7 +127,7 @@ class Miner(ConnectionProcessor):
             self.__emit_hashrate_msg_on_bus(job, avg_time)
             self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
 
-            self.submit_mining_solution(job)
+            # self.submit_mining_solution(job)
 
             nonce += 1
 
@@ -140,6 +141,8 @@ class Miner(ConnectionProcessor):
         )
 
         connection.connect_to_pool()
+
+        self.__emit_aux_msg_on_bus("Connected!")
 
         # Intializes MinerV2 instance
         self.setup_connection()
@@ -256,7 +259,9 @@ class Miner(ConnectionProcessor):
         req = OpenStandardMiningChannel(
             req_id=1,
             user_identity=self.name,
-            nominal_hash_rate=self.device_information.get("speed_ghps") * 1e9,
+            nominal_hash_rate=math.floor(
+                self.device_information.get("speed_ghps") * 1e9
+            ),
             max_target=self.diff_1_target,
             # Header only mining, now extranonce 2 size required
         )

@@ -302,7 +302,7 @@ class OpenStandardMiningChannel(Message):
         self,
         req_id: typing.Any,
         user_identity: str,
-        nominal_hash_rate: float,
+        nominal_hash_rate: int,
         max_target: int,
     ):
         # Unconstrained sequence of bytes. Whatever is needed by upstream node to identify/authenticate
@@ -337,7 +337,7 @@ class OpenStandardMiningChannel(Message):
     def to_bytes(self):
         req_id = U32(self.req_id)
         user_identity = STR0_255(self.user_identity)
-        nominal_hash_rate = F32(self.nominal_hash_rate)
+        nominal_hash_rate = U32(self.nominal_hash_rate)
         max_target = U256(self.max_target)
 
         payload = req_id + user_identity + nominal_hash_rate + max_target
@@ -351,7 +351,7 @@ class OpenStandardMiningChannel(Message):
         l = bytes[4]
 
         user_identity = bytes[5 : 5 + l].decode("utf-8")
-        nominal_hash_rate = struct.unpack("<f", bytes[5 + l : 5 + l + 4])
+        nominal_hash_rate = int.from_bytes(bytes[5 + l : 5 + l + 4], byteorder="little")
         max_target = int.from_bytes(
             bytes[5 + l + 4 : 5 + l + 4 + 4], byteorder="little"
         )
@@ -798,7 +798,9 @@ class SetNewPrevHash(ChannelMessage):
 # maximum target remains stable.
 class SetTarget(ChannelMessage):
     def __init__(self, channel_id: int, max_target: int):
-        # Maximum value of produced hash that will be accepted by a server to accept shares
+        # Maximum value of produced hash that will be accepted by a server to accept shares;
+        # numeric value that a hashed block header must be less than or equal to in order for
+        # a new block to be awarded to a miner
         self.max_target = max_target
         super().__init__(channel_id=channel_id)
 
@@ -818,7 +820,7 @@ class SetTarget(ChannelMessage):
     @staticmethod
     def from_bytes(bytes: bytearray):
         channel_id = int.from_bytes(bytes[:4], byteorder="little")
-        max_target = int.from_bytes(bytes[4:8], byteorder="little")
+        max_target = int.from_bytes(bytes[4 : 4 + 32], byteorder="little")
 
         msg = SetTarget(
             channel_id=channel_id,

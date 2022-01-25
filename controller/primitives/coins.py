@@ -20,11 +20,11 @@ class Target:
         self.target = self.target // factor
 
     def __str__(self):
-        print("Difficulty 1 targt")
-        print(self.diff_1_target)
-        print("Difficituly target")
-        print(self.target)
-        return "{}(diff={})".format(type(self).__name__, self.to_difficulty())
+        return "{}(diff={}, target={})".format(
+            type(self).__name__,
+            self.to_difficulty(),
+            self.target.to_bytes(32, byteorder="big").hex(),
+        )
 
     def to_bytes(self):
         # TODO: convert to bytes

@@ -49,7 +49,6 @@ def U24(inter):
 
 
 def U32(inter):
-
     assert type(inter) is int, "U32: not integer"
 
     if inter >= 2 ** 32:
