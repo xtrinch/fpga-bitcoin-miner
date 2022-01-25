@@ -19,7 +19,7 @@ init()
 bus = EventBus()
 
 
-def connect():
+async def connect():
     np.random.seed(123)
     parser = argparse.ArgumentParser(
         prog="mine.py",
@@ -75,10 +75,10 @@ def connect():
     conn1 = Connection(
         "miner",
         "stratum",
-        pool_host="v2.eu.stratum.slushpool.com",
-        pool_port=3336,
-        # pool_host="localhost",
-        # pool_port=2000,
+        # pool_host="v2.eu.stratum.slushpool.com",
+        # pool_port=3336,
+        pool_host="localhost",
+        pool_port=2000,
     )
 
     m1 = Miner(
@@ -95,22 +95,18 @@ def connect():
         connection=conn1,
     )
 
-    m1.connect_to_pool(conn1)
+    await m1.connect_to_pool(conn1)
 
     return m1, conn1
 
 
-async def main(m1: Miner):
-    task = asyncio.create_task(m1.receive_loop())
-    try:
-        await task
-    except Exception as e:
-        logging.error(traceback.format_exc())
-        print(e)
+async def main():
+    (m1, conn1) = await connect()
+
+    await m1.receive_loop()
 
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)
 
-    (m1, conn1) = connect()
-    asyncio.run(main(m1))
+    asyncio.run(main())

@@ -46,6 +46,7 @@ class MiningJob:
         self.diff_target = diff_target
         self.version = version
         self.merkle_root = merkle_root
+        self.is_cancelled = False
 
     def _format(self, content):
         return "{}({})".format(type(self).__name__, content)

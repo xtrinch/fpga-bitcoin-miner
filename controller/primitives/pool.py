@@ -24,7 +24,9 @@ from primitives.protocol import ConnectionProcessor
 """Stratum V2 pool implementation
 
 """
+import asyncio
 import random
+from asyncio import StreamReader, StreamWriter
 
 import primitives.coins as coins
 from primitives.messages import *
@@ -101,18 +103,12 @@ class Pool(ConnectionProcessor):
         self.accepted_shares = 0
         self.stale_shares = 0
         self._mining_channel_registry = None
+        self.server = None
 
-    def make_handshake(self, connection: Connection):
-        self.connection = connection
-        self._mining_channel_registry = ChannelRegistry(connection.uid)
-
-        connection.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        connection.sock.bind(("localhost", 2000))
-        connection.sock.listen(1)
-        print("Listening for connections")
-
-        connection.conn_target, addr = connection.sock.accept()
-        print("Accepted connection from", addr)
+    async def client_connected_cb(
+        self, client_reader: StreamReader, client_writer: StreamWriter
+    ):
+        print("Accepted client connection")
 
         # our_private = base64.b64decode('WAmgVYXkbT2bCtdcDwolI88/iVi/aV3/PHcUBTQSYmo=')
         # private = x25519.X25519PrivateKey.from_private_bytes(our_private)
@@ -133,7 +129,7 @@ class Pool(ConnectionProcessor):
         our_handshakestate.initialize(NXHandshakePattern(), False, b"", s=pool_s)
 
         # wait for empty message receive
-        ciphertext = connection.conn_target.recv(4096)
+        ciphertext = await client_reader.read(4096)
         frame, _ = Connection.unwrap(ciphertext)
         message_buffer = bytearray()
         our_handshakestate.read_message(frame, message_buffer)
@@ -149,7 +145,20 @@ class Pool(ConnectionProcessor):
         self.connection.decrypt_cipher_state = self.connection.cipherstates[0]
 
         message_buffer = Connection.wrap(bytes(message_buffer))
-        num_sent = connection.conn_target.send(message_buffer)  # rpc send
+        num_sent = client_writer.write(message_buffer)
+
+        self.connection.sock = (client_reader, client_writer)
+        print("Handshake done!")
+
+    async def start_server(self):
+        self.server = await asyncio.start_server(
+            self.client_connected_cb, host="localhost", port=2000
+        )
+        await self.server.serve_forever()
+
+    async def make_handshake(self, connection: Connection):
+        self.connection = connection
+        self._mining_channel_registry = ChannelRegistry(connection.uid)
 
     def reset_stats(self):
         self.accepted_submits = 0

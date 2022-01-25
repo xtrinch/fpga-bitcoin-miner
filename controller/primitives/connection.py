@@ -1,3 +1,4 @@
+import asyncio
 import random
 import socket
 import time
@@ -39,17 +40,14 @@ class Connection:
         self.uid = gen_uid()
         self.port = port
         self.conn_target = None
-        self.sock = socket.socket()
-        if type_name == "miner":
-            self.sock.settimeout(1.0)
+        self.sock = None
         self.pool_host = pool_host
         self.pool_port = pool_port
         self.cipher_state: CipherState = None
 
-    def connect_to_pool(self):
-        self.sock.connect((self.pool_host, self.pool_port))
-
-        self.connect_to_noise(self.pool_host != "localhost")
+    async def connect_to_pool(self):
+        self.sock = await asyncio.open_connection(self.pool_host, self.pool_port)
+        await self.connect_to_noise(self.pool_host != "localhost")
 
     def disconnect(self):
         # TODO: Review whether to use assert's or RuntimeErrors in simulation
@@ -73,9 +71,9 @@ class Connection:
         if self.conn_target:
             self.conn_target.send(final_message)
         else:
-            self.sock.send(final_message)
+            self.sock[1].write(final_message)
 
-    def connect_to_noise(self, verify_connection: bool = True):
+    async def connect_to_noise(self, verify_connection: bool = True):
         # prepare handshakestate objects for initiator and responder
         our_handshakestate = HandshakeState(
             SymmetricState(
@@ -94,11 +92,12 @@ class Connection:
         message_buffer = bytearray()
         our_handshakestate.write_message(b"", message_buffer)
         message_buffer = Connection.wrap(bytes(message_buffer))
-        num_sent = self.sock.send(message_buffer)  # rpc send
+        num_sent = self.sock[1].write(message_buffer)  # rpc send
 
         #  <- e, ee, s, es, SIGNATURE_NOISE_MESSAGE
         message_buffer = bytearray()
-        ciphertext = self.sock.recv(4096)  # rpc recv
+        ciphertext = await self.sock[0].read(4096)  # rpc recv
+        print(ciphertext)
         frame, _ = Connection.unwrap(ciphertext)
         self.cipherstates = our_handshakestate.read_message(frame, message_buffer)
         self.cipher_state = self.cipherstates[0]
@@ -132,8 +131,14 @@ class Connection:
         raw = self.decrypt_cipher_state.decrypt_with_ad(b"", frame)
         return raw
 
-    def receive(self) -> [Message]:
-        ciphertext = self.sock.recv(8192)
+    async def receive(self) -> [Message]:
+        if self.sock is None:
+            return []
+
+        ciphertext = await self.sock[0].read(8192)
+        if len(ciphertext) == 0:
+            return
+
         print(
             f"{Style.BRIGHT}{Fore.YELLOW}Rcv raw: {Style.NORMAL}%d bytes{Style.RESET_ALL}"
             % len(ciphertext)

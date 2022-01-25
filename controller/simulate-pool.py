@@ -28,7 +28,7 @@ init()
 bus = EventBus()
 
 
-def connect():
+async def connect():
     np.random.seed(123)
     parser = argparse.ArgumentParser(
         prog="mine.py",
@@ -81,7 +81,7 @@ def connect():
         enable_vardiff=True,
     )
 
-    pool.make_handshake(conn1)
+    await pool.make_handshake(conn1)
 
     if args.plain_output:
         print(
@@ -110,12 +110,11 @@ def connect():
     return pool
 
 
-async def loop(pool: Pool):
-    await asyncio.gather(
-        pool.receive_loop(),
-    )
+async def loop():
+    pool = await connect()
+
+    await asyncio.gather(pool.start_server(), pool.receive_loop())
 
 
 if __name__ == "__main__":
-    pool = connect()
-    asyncio.run(loop(pool))
+    asyncio.run(loop())

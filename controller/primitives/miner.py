@@ -1,4 +1,5 @@
 import asyncio  # new module
+import concurrent.futures
 import enum
 import math
 from hashlib import sha256
@@ -92,7 +93,7 @@ class Miner(ConnectionProcessor):
         )
         return header
 
-    async def mine(self, job: MiningJob):
+    def mine(self, job: MiningJob):
         share_diff = job.diff_target.to_difficulty()
         avg_time = share_diff * 4.294967296 / self.device_information.get("speed_ghps")
 
@@ -101,7 +102,7 @@ class Miner(ConnectionProcessor):
 
         nonce = 0
 
-        while True:
+        while not job.is_cancelled:
             # assemble the header
 
             # version: from NewMiningJob message
@@ -125,6 +126,7 @@ class Miner(ConnectionProcessor):
 
             if nonce % 1000000 == 0 and nonce != 0:
                 print("Tried another 1000000")
+                print(job.uid)
                 print(hash)
                 # print(self.channel.session.curr_target.target)
 
@@ -134,18 +136,16 @@ class Miner(ConnectionProcessor):
                 self.__emit_hashrate_msg_on_bus(job, avg_time)
                 self.submit_mining_solution(job)
 
-            # print("?")
             nonce += 1
-            await asyncio.sleep(0)
 
-    def connect_to_pool(self, connection: Connection):
+    async def connect_to_pool(self, connection: Connection):
         self.__emit_aux_msg_on_bus(
             "Connecting to pool {}:{}".format(
                 connection.pool_host, connection.pool_port
             )
         )
 
-        connection.connect_to_pool()
+        await connection.connect_to_pool()
 
         self.__emit_aux_msg_on_bus("Connected!")
 
@@ -182,6 +182,7 @@ class Miner(ConnectionProcessor):
         """
         # Interrupt the mining process for now
         if self.mine_proc is not None:
+            self.job.is_cancelled = True
             self.mine_proc.cancel()
         # Restart the process with a new job
         self.job = job
@@ -189,8 +190,12 @@ class Miner(ConnectionProcessor):
 
         # create the mining task for this job
         loop = asyncio.get_event_loop()
-        task = loop.create_task(self.mine(job))
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
+        def m():
+            self.mine(job)
+
+        task = loop.run_in_executor(executor, m)
         self.mine_proc = task
 
     def set_is_mining(self, is_mining):
@@ -218,9 +223,6 @@ class Miner(ConnectionProcessor):
         )
 
     def setup_connection(self):
-        # Initiate V2 protocol setup
-        # TODO-DOC: specification should categorize downstream and upstream flags.
-        #  PubKey handling is also not precisely defined yet
         self.connection.send_msg(
             SetupConnection(
                 protocol=ProtocolType.MINING_PROTOCOL,

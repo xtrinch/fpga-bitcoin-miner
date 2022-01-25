@@ -83,8 +83,8 @@ class ConnectionProcessor:
     def _emit_protocol_msg_on_bus(self, log_msg: str, msg: Message):
         self._emit_aux_msg_on_bus("{}: {}".format(log_msg, msg))
 
-    def receive_one(self):
-        messages = self.connection.receive()
+    async def receive_one(self):
+        messages = await self.connection.receive()
 
         try:
             for msg in messages:
@@ -94,12 +94,13 @@ class ConnectionProcessor:
                 "{} doesn't implement:{}() for".format(type(self).__name_, e),
                 msg,
             )
+        await asyncio.sleep(0)
 
     async def receive_loop(self):
         """Receive process for a particular connection dispatches each received message"""
         while True:
             try:
-                self.receive_one()
+                await self.receive_one()
             except socket.timeout as e:
                 print(e)
                 await asyncio.sleep(0)
