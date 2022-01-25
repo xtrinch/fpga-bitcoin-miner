@@ -56,9 +56,8 @@ expected_hash = "00000000000000000007ED90D289F313C4F19A44438F3C4C55ECA1637C4C870
 header = version + prev_hash + merkle_root + ntime + nbits + nonce
 print(header)
 
-hash = sha256(sha256(bytearray.fromhex(header)).digest()).digest().hex()
-hash = bytearray.fromhex(hash)
-hash.reverse()
+hash = sha256(sha256(bytearray.fromhex(header)).digest()).digest()
+hash = hash[::-1]  # or bytearray(hash).reverse()
 hash = hash.hex().upper()
 
 print("Calculated hash:")

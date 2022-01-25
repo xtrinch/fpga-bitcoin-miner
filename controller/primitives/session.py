@@ -186,7 +186,7 @@ class MiningSession:
         """Derives target from current difficulty on the session"""
         return self.curr_diff_target
 
-    def set_target(self, target):
+    def set_target(self, target: coins.Target):
         self.curr_diff_target = target
 
     def set_prev_hash(self, msg: SetNewPrevHash):
@@ -197,7 +197,7 @@ class MiningSession:
     def new_mining_job(self, version: int, merkle_root: bytes, job_uid=None):
         """Generates a new job using current session's target"""
         return self.job_registry.new_mining_job(
-            self.curr_target, version, merkle_root, job_uid
+            self.curr_diff_target, version, merkle_root, job_uid
         )
 
     def run(self):

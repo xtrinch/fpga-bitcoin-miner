@@ -1,6 +1,7 @@
 import asyncio  # new module
 import enum
 import math
+from hashlib import sha256
 
 import numpy as np
 import simpy
@@ -118,20 +119,24 @@ class Miner(ConnectionProcessor):
                 nonce=nonce,
             )
 
-            print(self.channel.session.curr_target)
+            hash_bytes = sha256(sha256(header).digest()).digest()
+            hash = int.from_bytes(hash_bytes, byteorder="little")
+            # print(hash)
 
-            print(header)
-            # TODO: the actual mining would happen here!
-            # To simulate miner failures we can disable mining
-            self.work_meter.measure(share_diff)
-            self.__emit_hashrate_msg_on_bus(job, avg_time)
-            self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
+            if nonce % 1000000 == 0 and nonce != 0:
+                print("Tried another 1000000")
+                print(hash)
+                # print(self.channel.session.curr_target.target)
 
-            # self.submit_mining_solution(job)
+            if hash < self.channel.session.curr_target.target:
+                self.__emit_aux_msg_on_bus("solution found for job {}".format(job.uid))
+                self.work_meter.measure(share_diff)
+                self.__emit_hashrate_msg_on_bus(job, avg_time)
+                self.submit_mining_solution(job)
 
+            # print("?")
             nonce += 1
-
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0)
 
     def connect_to_pool(self, connection: Connection):
         self.__emit_aux_msg_on_bus(
@@ -185,6 +190,7 @@ class Miner(ConnectionProcessor):
         # create the mining task for this job
         loop = asyncio.get_event_loop()
         task = loop.create_task(self.mine(job))
+
         self.mine_proc = task
 
     def set_is_mining(self, is_mining):
@@ -314,6 +320,7 @@ class Miner(ConnectionProcessor):
 
     def visit_set_target(self, msg: SetTarget):
         if self.__is_channel_valid(msg):
+            # TODO: set target should set the target class, not the int?
             self.channel.session.set_target(msg.max_target)
 
     def visit_set_new_prev_hash(self, msg: SetNewPrevHash):

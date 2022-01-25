@@ -108,14 +108,9 @@ async def main(m1: Miner):
         logging.error(traceback.format_exc())
         print(e)
 
-    # await asyncio.gather(
-    #     m1.receive_loop(),
-    # )
-
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)
 
-    while True:
-        (m1, conn1) = connect()
-        asyncio.run(main(m1))
+    (m1, conn1) = connect()
+    asyncio.run(main(m1))
