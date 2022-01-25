@@ -100,8 +100,14 @@ class Miner(ConnectionProcessor):
         self.__emit_hashrate_msg_on_bus(job, avg_time)
 
         nonce = 0
-        min_hash = 0xFFFF << 240
+        min_hash = 0xFFFF << 224
 
+        # version: from NewMiningJob message
+        # prev_hash: from SetNewPrevHash message
+        # merkle_root: from NewMiningJob message
+        # ntime: from SetNewPrevHash message (min_ntime)
+        # nbits: from SetNewPrevHash message
+        # nonce: auto incremented value
         header_without_nonce = self.assemble_header(
             version=job.version,
             prev_hash=self.channel.session.prev_hash,
@@ -116,40 +122,16 @@ class Miner(ConnectionProcessor):
         print(
             self.channel.session.curr_target.target.to_bytes(32, byteorder="big").hex()
         )
-
+        print("--------------")
         while not job.is_cancelled:
             # assemble the header
-
-            # version: from NewMiningJob message
-            # prev_hash: from SetNewPrevHash message
-            # merkle_root: from NewMiningJob message
-            # ntime: from SetNewPrevHash message (min_ntime)
-            # nbits: from SetNewPrevHash message
-            # nonce: auto incremented value
-
             full_header = header_without_nonce + self.int_to_reverse_bytes(nonce, 4)
 
             hash_bytes = sha256(sha256(full_header).digest()).digest()
             hash = int.from_bytes(hash_bytes, byteorder="little")
-            # print(hash)
-
-            # if nonce % 1000000 == 0 and nonce != 0:
-            #     print("Computed hash:")
-            #     print(hash_bytes.hex())
-            #     print("Max target:")
-            #     print((0xFFFF << 208).to_bytes(32, byteorder="big").hex())
-            #     print("Curr target:")
-            #     print(
-            #         self.channel.session.curr_target.target.to_bytes(
-            #             32, byteorder="big"
-            #         ).hex()
-            #     )
-            #     print("Nonce:")
-            #     print(nonce)
 
             if hash < min_hash:
                 print(hash.to_bytes(32, byteorder="big").hex())
-
                 min_hash = hash
 
             if hash < self.channel.session.curr_target.target:
@@ -293,8 +275,7 @@ class Miner(ConnectionProcessor):
                 self.device_information.get("speed_ghps") * 1e9
             ),
             # TODO: figure this out
-            # max_target=self.diff_1_target,
-            max_target=(1),
+            max_target=self.diff_1_target,
         )
         # We expect a paired response to our open channel request
         self.send_request(req)
