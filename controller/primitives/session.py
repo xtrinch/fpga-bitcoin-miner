@@ -47,6 +47,10 @@ class MiningJob:
         self.version = version
         self.merkle_root = merkle_root
         self.is_cancelled = False
+        # mining start as unix timestamp
+        self.started_at = None
+        # mining end as unix timestamp
+        self.finished_at = None
 
     def _format(self, content):
         return "{}({})".format(type(self).__name__, content)

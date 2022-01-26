@@ -117,8 +117,7 @@ class Miner(ConnectionProcessor):
             nbits=self.channel.session.nbits,
         )
 
-        start_time = int(time.time())
-        print("start time: %d" % start_time)
+        job.started_at = int(time.time())
         print("Max target:")
         print((0xFFFF << 208).to_bytes(32, byteorder="big").hex())
         print("Curr target:")
@@ -134,8 +133,6 @@ class Miner(ConnectionProcessor):
             hash = int.from_bytes(hash_bytes, byteorder="little")
 
             if hash < min_hash:
-                print("nonce: %d" % nonce)
-                print("time: %d" % int(time.time()))
                 print(hash.to_bytes(32, byteorder="big").hex())
                 min_hash = hash
 
@@ -147,7 +144,11 @@ class Miner(ConnectionProcessor):
 
             nonce += 1
 
-        print("Finished mining at %d" % nonce)
+        job.finished_at = int(time.time())
+        print(
+            "Job duration: %d sec, nonce is at %d" % job.finished_at - job.started_at,
+            nonce,
+        )
 
     async def connect_to_pool(self, connection: Connection):
         self.__emit_aux_msg_on_bus(

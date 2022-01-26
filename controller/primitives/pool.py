@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 import simpy
+from colorama import Fore, Style
 from cryptography.hazmat.primitives.asymmetric import x25519
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
@@ -84,9 +85,6 @@ class Pool(ConnectionProcessor):
         # Per connection message processors
         self.connection_processors = dict()
 
-        self.pow_update_process = None
-        # self.pow_update_process = env.process(self.__pow_update())
-
         self.meter_accepted = HashrateMeter()
         self.meter_rejected_stale = HashrateMeter()
         # self.meter_process = env.process(self.__pool_speed_meter())
@@ -149,6 +147,12 @@ class Pool(ConnectionProcessor):
 
         self.connection.sock = (client_reader, client_writer)
         print("Handshake done!")
+
+        # # create the POW task only after the client is connected
+        # loop = asyncio.get_event_loop()
+        # print("Beofre create")
+        # task = loop.create_task(self.pow_update())
+        # print("After create")
 
     async def start_server(self):
         self.server = await asyncio.start_server(
@@ -225,22 +229,21 @@ class Pool(ConnectionProcessor):
             self.account_rejected_submits()
             on_reject(None)
 
-    def __pow_update(self):
+    async def pow_update(self):
         """This process simulates finding new blocks based on pool's hashrate"""
         while True:
-            # simulate pool block time using exponential distribution
-            # yield self.env.timeout(
-            #     np.random.exponential(self.avg_pool_block_time)
-            #     if self.simulate_luck
-            #     else self.avg_pool_block_time
-            # )
-            # Simulate the new block hash by calculating sha256 of current time
+            if not self.connection.sock:
+                await asyncio.sleep(5)
+                continue
+
             self.__generate_new_prev_hash()
 
             self.__emit_aux_msg_on_bus("NEW_BLOCK: {}".format(self.prev_hash.hex()))
 
             for connection_processor in self.connection_processors.values():
                 connection_processor.on_new_block()
+
+            await asyncio.sleep(5)
 
     def __generate_new_prev_hash(self):
         """Generates a new prevhash based on current time."""
@@ -261,8 +264,11 @@ class Pool(ConnectionProcessor):
                     "SPEED: {0:.2f} Gh/s, {1:.4f} submits/s".format(speed, submit_speed)
                 )
 
-    def __emit_aux_msg_on_bus(self, msg):
-        self.bus.emit(self.name, None, None, msg)
+    def __emit_aux_msg_on_bus(self, msg: str):
+        print(
+            f"{Fore.BLUE}{Style.BRIGHT}%s: {Style.NORMAL}%s{Style.RESET_ALL}"
+            % (self.name, msg)
+        )
 
     def _send_msg(self, msg):
         self.connection.send_msg(msg)

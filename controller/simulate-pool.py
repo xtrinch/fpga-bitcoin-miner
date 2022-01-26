@@ -113,7 +113,7 @@ async def connect():
 async def loop():
     pool = await connect()
 
-    await asyncio.gather(pool.start_server(), pool.receive_loop())
+    await asyncio.gather(pool.start_server(), pool.receive_loop(), pool.pow_update())
 
 
 if __name__ == "__main__":
