@@ -49,31 +49,37 @@
 #   - help message?
 #   - tighten up error handling
 
-import json, sys, subprocess
+import json
+import subprocess
+import sys
+
 
 def onoes(s):
-    print(json.dumps({ "error": s }))
+    print(json.dumps({"error": s}))
+
 
 # from https://github.com/YosysHQ/yosys/blob/master/tests/rpc/frontend.py
 def map_parameter(parameter):
-	if parameter["type"] == "unsigned":
-		return int(parameter["value"], 2)
-	if parameter["type"] == "signed":
-		width = len(parameter["value"])
-		value = int(parameter["value"], 2)
-		if value & (1 << (width - 1)):
-			value = -((1 << width) - value)
-		return value
-	if parameter["type"] == "string":
-		return parameter["value"]
-	if parameter["type"] == "real":
-		return float(parameter["value"])
+    if parameter["type"] == "unsigned":
+        return int(parameter["value"], 2)
+    if parameter["type"] == "signed":
+        width = len(parameter["value"])
+        value = int(parameter["value"], 2)
+        if value & (1 << (width - 1)):
+            value = -((1 << width) - value)
+        return value
+    if parameter["type"] == "string":
+        return parameter["value"]
+    if parameter["type"] == "real":
+        return float(parameter["value"])
+
 
 def check_output(params, n):
     if f"\\OUT{str(n)}_MHZ" in params:
         return map_parameter(params[f"\\OUT{str(n)}_MHZ"])
     else:
         return None
+
 
 def ecppll(modname, params):
     out0 = check_output(params, 0)
@@ -91,35 +97,37 @@ def ecppll(modname, params):
 
     infreq = map_parameter(params["\\IN_MHZ"])
 
-    clkargs = [ "--clkin", str(infreq) ]
-    if out0 != None: clkargs = clkargs + [ "--clkout0", str(out0) ]
-    if out1 != None: clkargs = clkargs + [ "--clkout1", str(out1) ]
-    if out2 != None: clkargs = clkargs + [ "--clkout2", str(out2) ]
-    if out3 != None: clkargs = clkargs + [ "--clkout3", str(out3) ]
+    clkargs = ["--clkin", str(infreq)]
+    if out0 != None:
+        clkargs = clkargs + ["--clkout0", str(out0)]
+    if out1 != None:
+        clkargs = clkargs + ["--clkout1", str(out1)]
+    if out2 != None:
+        clkargs = clkargs + ["--clkout2", str(out2)]
+    if out3 != None:
+        clkargs = clkargs + ["--clkout3", str(out3)]
 
-    cmd = [
-        "ecppll",
-        "-f", "/dev/stderr",
-        "--reset", "--standby"
-    ] + clkargs
-    # sys.stderr.write(json.dumps(cmd))
+    cmd = ["ecppll", "-f", "/dev/stderr", "--reset", "--standby"] + clkargs
+    sys.stderr.write(json.dumps(cmd))
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = proc.communicate()
-    pll_module = stderr.decode('utf-8')
+    pll_module = stderr.decode("utf-8")
 
     params = ""
     ports0 = ""
     ports1 = ""
 
-    for (n, x) in [ (0, out0), (1, out1), (2, out2), (3, out3) ]:
+    for (n, x) in [(0, out0), (1, out1), (2, out2), (3, out3)]:
         if x != None:
             name = "clkout" + str(n)
             params = params + "\n   , parameter OUT" + str(n) + "_MHZ = " + str(x)
             ports0 = ports0 + "\n   , output " + name
             ports1 = ports1 + "\n    , ." + name + "(" + name + ")"
 
-    return pll_module + f"""
+    return (
+        pll_module
+        + f"""
 module {modname}
   #( parameter IN_MHZ = {str(infreq)}
 {params}
@@ -139,6 +147,8 @@ module {modname}
     );
 endmodule
 """
+    )
+
 
 def derive(obj, cmdname):
     if not "module" in obj:
@@ -156,28 +166,35 @@ def derive(obj, cmdname):
     params = obj["parameters"]
     source = ecppll(modname, params)
 
-    if False: # [NOTE] (aseipp): debugging
+    if False:  # [NOTE] (aseipp): debugging
         sys.stderr.write(json.dumps(params))
         sys.stderr.write(source)
 
-    print(json.dumps({ "frontend": "verilog", "source": source }))
+    print(json.dumps({"frontend": "verilog", "source": source}))
+
 
 def main(modname):
     while True:
         line = sys.stdin.readline()
-        if not line: break
+        if not line:
+            break
         obj = json.loads(line)
 
         if not "method" in obj:
-            print(json.dumps({ "error": "invalid input line given (no 'method' key)" }))
+            print(json.dumps({"error": "invalid input line given (no 'method' key)"}))
         elif obj["method"] == "modules":
-            print(json.dumps({ "modules": [ modname ] }))
+            print(json.dumps({"modules": [modname]}))
         elif obj["method"] == "derive":
             derive(obj, modname)
         else:
-            print(json.dumps({ "error": "'{}' is not a valid method".format(obj["method"]) }))
+            print(
+                json.dumps(
+                    {"error": "'{}' is not a valid method".format(obj["method"])}
+                )
+            )
 
         sys.stdout.flush()
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

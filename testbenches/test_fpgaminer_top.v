@@ -51,7 +51,10 @@ module test_fpgaminer_top ();
 
 	always @ (posedge clk) begin
 		if (new_golden_nonce) begin
-			$display("Finished tests, nonce is: %8x\n", golden_nonce);
+			if (golden_nonce == 32'h1DAC2B7C)
+				$display("Success, nonce is: %8x\n", golden_nonce);
+			else
+				$display("Tests failed, nonce is: %8x\n", golden_nonce);
 			$finish;
 		end
 	end
