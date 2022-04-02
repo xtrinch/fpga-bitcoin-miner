@@ -1,3 +1,5 @@
+# WORK IN PROGRESS. Mines in python, does not send work to the FPGA.
+
 # Mining controller
 
 This is the part that connects to the pool and gives work to the miner.
