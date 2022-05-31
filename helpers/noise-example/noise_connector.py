@@ -3,19 +3,43 @@
 # source: https://github.com/jakubtrnka/braiins-open/blob/master/protocols/stratum/python_noise_tcp_client/requirements.txt
 # connects to a stratum v2 server, does the noise handshake and then disconnects
 
-import socket
 import binascii
+import logging
+import socket
+import time
+from typing import List
+
 import base58
 import ed25519
-import time
-
-from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
-from dissononce.processing.impl.handshakestate import HandshakeState
-from dissononce.processing.impl.symmetricstate import SymmetricState
-from dissononce.processing.impl.cipherstate import CipherState
 from dissononce.cipher.chachapoly import ChaChaPolyCipher
 from dissononce.dh.x25519.x25519 import X25519DH
 from dissononce.hash.blake2s import Blake2sHash
+from dissononce.processing.handshakepatterns.interactive.NX import NXHandshakePattern
+from dissononce.processing.impl.cipherstate import CipherState
+from dissononce.processing.impl.handshakestate import HandshakeState
+from dissononce.processing.impl.symmetricstate import SymmetricState
+
+from message_types import (
+    BYTES,
+    F32,
+    STR0_255,
+    U8,
+    U16,
+    U24,
+    U32,
+    U256,
+    parse_bytes_to_int,
+)
+from messages import (
+    Message,
+    NewMiningJob,
+    OpenStandardMiningChannel,
+    OpenStandardMiningChannelSuccess,
+    SetNewPrevHash,
+    SetupConnection,
+    SetupConnectionSuccess,
+    msg_type_class_map,
+)
 
 HOST = "v2.eu.stratum.slushpool.com"
 PORT = 3336
@@ -60,6 +84,36 @@ def unwrap(item: bytes) -> (bytes, bytes):
     return (item[2 : 2 + payload_length], item[payload_length + 2 :])
 
 
+def decrypt(cipherstate, ciphertext: bytes) -> bytes:
+    frame, _ = unwrap(ciphertext)
+    raw = cipherstate.decrypt_with_ad(b"", frame)
+    return raw
+
+
+def receive(sock: socket.socket, cipherstate) -> [Message]:
+    ciphertext = sock.recv(8192)  # rpc recv
+    print("RCV RAW: %d bytes" % len(ciphertext))
+
+    # we may receive multiple messages in one noise message, we must decrypt
+    # them separately
+    remaining_length = len(ciphertext)
+    decoded_msgs = []
+
+    while remaining_length > 0:
+        raw = decrypt(cipherstate, ciphertext)
+        msg_length = len(raw)
+
+        decoded_msg = Message.from_frame(raw)
+        decoded_msgs.append(decoded_msg)
+
+        # noise overhead seems to be 18 bytes per message
+        remaining_length = remaining_length - (msg_length + 18)
+        # discard the message we decoded in this run of the while loop
+        ciphertext = ciphertext[len(ciphertext) - (remaining_length) :]
+
+    return decoded_msgs
+
+
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Connecting to ", HOST, " port ", PORT)
@@ -90,12 +144,57 @@ def main():
     message_buffer = bytearray()
     ciphertext = sock.recv(4096)  # rpc recv
     frame, _ = unwrap(ciphertext)
-    our_handshakestate.read_message(frame, message_buffer)
+    cipherstates = our_handshakestate.read_message(frame, message_buffer)
 
     pool_static_server_key = our_handshakestate.rs.data
 
     signature = SignatureMessage(message_buffer, pool_static_server_key)
     signature.verify()
+
+    # send SetupConnection message
+    setup_connection = SetupConnection(
+        protocol=0,
+        max_version=2,
+        min_version=2,
+        flags=0,
+        endpoint_host=HOST,
+        endpoint_port=PORT,
+        vendor="some_vendor",
+        hardware_version="1",
+        firmware="unknown",
+        device_id="some_id",
+    )
+    print("SEND: %s" % setup_connection)
+    setup_connection_message = setup_connection.to_frame()
+    ciphertext = cipherstates[0].encrypt_with_ad(b"", setup_connection_message)
+    sock.send(wrap(ciphertext))
+
+    # receive SetupConnectionSuccess or SetupConnectionError
+    receive(sock, cipherstates[1])
+
+    open_mining_channel = OpenStandardMiningChannel(
+        req_id=1,
+        user_identity="xtrinch.worker",
+        nominal_hashrate=100.0,
+        max_target=100,
+    )
+    open_mining_channel_message = open_mining_channel.to_frame()
+    print("SEND: %s" % open_mining_channel)
+    ciphertext = cipherstates[0].encrypt_with_ad(b"", open_mining_channel_message)
+    sock.send(wrap(ciphertext))
+
+    # receive OpenStandardMiningChannelSuccess
+    [msg1] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
+
+    # receive NewMiningJob & SetNewPrevHash combined
+    [msg1, msg2] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
+    print("RECEIVE: %s" % msg2)
+
+    # receive the next message, whatever it may be
+    [msg1] = receive(sock, cipherstates[1])
+    print("RECEIVE: %s" % msg1)
 
     print(
         "Noise encrypted connection established successfuly. Nothing to do now, Closing..."

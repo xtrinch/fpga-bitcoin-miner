@@ -12,6 +12,8 @@ module test_top ();
 	reg comm_clk = 0;
 	initial while(1) #5 comm_clk = ~comm_clk;
 
+    parameter LOOP_LOG2 = 5;
+
 	reg test_passed = 0;
 
 	// UUT
@@ -27,7 +29,7 @@ module test_top ();
     top #(
 		.baud_rate(baud_rate),
 		.sys_clk_freq(sys_clk_freq),
-        .LOOP_LOG2(5)
+        .LOOP_LOG2(LOOP_LOG2)
 	) miner (
         .CLK(comm_clk),
         .RX(uut_rx),

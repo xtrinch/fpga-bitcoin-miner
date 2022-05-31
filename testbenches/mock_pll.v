@@ -10,6 +10,6 @@ module pll(
 	assign clock_out = new_clock;		
 									
 	initial begin
-		while(1) #1 new_clock = ~new_clock;
+		while(1) #3 new_clock = ~new_clock;
 	end
 endmodule	

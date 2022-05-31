@@ -1,5 +1,4 @@
 .scons*
-*.json
 *.bin
 *.asc
 *.out

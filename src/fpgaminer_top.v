@@ -92,14 +92,14 @@ module fpgaminer_top (
 	assign nonce_next = reset ? nonce_min : (feedback_next ? nonce : (nonce + 32'd1));
 	
 	// just to know our program is running
-    assign leds[0] = !wait_for_work; // if we negate it, we'll get the true value out
-    assign leds[1] = !reset;
-	assign leds[2] = !nonce[0];
-	assign leds[3] = !golden_nonce_found;
-	assign leds[4] = !new_golden_nonce;
-	assign leds[5] = !feedback;
-	assign leds[6] = !cnt;
-	assign leds[7] = !(hash_clk == sha_clk);
+    // assign leds[0] = !wait_for_work; // if we negate it, we'll get the true value out
+    // assign leds[1] = !reset;
+	// assign leds[2] = !nonce[0];
+	// assign leds[3] = !golden_nonce_found;
+	// assign leds[4] = !new_golden_nonce;
+	// assign leds[5] = !feedback;
+	// assign leds[6] = !cnt;
+	// assign leds[7] = !(hash_clk == sha_clk);
 
 	always @ (posedge hash_clk)
 	begin
